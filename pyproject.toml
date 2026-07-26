@@ -30,6 +30,10 @@ dependencies = [
     "requests>=2.34.2",
 ]
 
+[build-system]
+requires = ["uv_build"]
+build-backend = "uv_build"
+
 [dependency-groups]
 dev = [
     "pytest>=9.0.3",
