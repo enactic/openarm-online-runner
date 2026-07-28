@@ -15,6 +15,7 @@
 """Configuration globals and logging setup."""
 
 import logging
+from datetime import datetime, time
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -40,6 +41,26 @@ class Settings(BaseSettings):
     OPENEVAL_API_URL: str = "http://localhost:8000"
     OPENEVAL_API_KEY: str
     OPENEVAL_TASK_ID: int
+
+    ACTIVE_TIME_START: time | None = None
+    ACTIVE_TIME_END: time | None = None
+
+    def is_active_time(self) -> bool:
+        """Whether or not it is a period of activity."""
+        start = self.ACTIVE_TIME_START
+        end = self.ACTIVE_TIME_END
+        if start is None or end is None:
+            return True
+        now = datetime.now().time()
+        if start <= end:
+            # Example:
+            # start=08:00
+            # end=17:00
+            return now >= start and now <= end
+        # Example:
+        # start=22:00
+        # end=06:00
+        return now >= start or now <= end
 
 
 settings = Settings()

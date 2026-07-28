@@ -116,6 +116,13 @@ def main():
                 paused = True
             time.sleep(settings.POLL_INTERVAL)
             continue
+        if not settings.is_active_time():
+            if not paused:
+                logger.warning("outside active time")
+                paused = True
+            time.sleep(settings.POLL_INTERVAL)
+            continue
+
         if paused:
             logger.info("resumed polling")
             paused = False
