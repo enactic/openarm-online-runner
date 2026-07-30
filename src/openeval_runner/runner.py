@@ -84,6 +84,9 @@ def run_job(job):
     """Execute a single job."""
     logger.debug("[job=%s] started", job["job_id"])
 
+    # If a dataset remains from a previous run, remove it before running the job.
+    _cleanup_recording(job)
+
     try:
         if job["runtime"] == "OpenArm Cell":
             success = _run_on_cell(job)
@@ -100,7 +103,8 @@ def run_job(job):
         logger.exception("[job=%s] failed", job["job_id"])
         job_client.fail_job(job["job_id"], str(err))
     finally:
-        _cleanup_recording(job)
+        if not settings.KEEP_DATASETS:
+            _cleanup_recording(job)
 
 
 def main():
