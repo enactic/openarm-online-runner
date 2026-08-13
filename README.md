@@ -42,14 +42,11 @@ UV_PROJECT_ENVIRONMENT=.venv-runner uv sync
 ### 5. Configure
 
 The runner reads settings from a `.env` file in the working directory.
+Copy [`.env.example`](.env.example) and edit it:
 
 ```bash
-OPENEVAL_API_URL=https://example.com
-OPENEVAL_API_KEY=xxx
-OPENEVAL_TASK_ID=1
-
-DATAFLOW_FILE=dataflow.yaml
-RECORDER_BASE_DIRECTORY=/path/to
+cp .env.example .env
+editor .env
 ```
 
 ### 6. Build the dataflow
