@@ -1,4 +1,4 @@
-# OpenEval Runner
+# OpenArm Online Runner
 
 ## Install
 
@@ -29,13 +29,13 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ### 3. Clone the code
 
 ```bash
-git clone https://github.com/enactic/openeval-runner.git
+git clone https://github.com/enactic/openarm-online-runner.git
 ```
 
 ### 4. Install Python dependencies
 
 ```bash
-cd openeval-runner
+cd openarm-online-runner
 UV_PROJECT_ENVIRONMENT=.venv-runner uv sync
 ```
 
@@ -58,22 +58,22 @@ UV_PROJECT_ENVIRONMENT=.venv-runner uv run dora build dataflow.yaml --uv
 ## Run
 
 ```bash
-UV_PROJECT_ENVIRONMENT=.venv-runner uv run python -m openeval_runner.runner
+UV_PROJECT_ENVIRONMENT=.venv-runner uv run python -m openarm_online_runner.runner
 ```
 
 ## Run as a systemd service
 
 ```bash
-systemd/openeval-runner-generate-service.sh \
-  | sudo tee /etc/systemd/system/openeval-runner.service
+systemd/openarm-online-runner-generate-service.sh \
+  | sudo tee /etc/systemd/system/openarm-online-runner.service
 sudo systemctl daemon-reload
-sudo systemctl enable --now openeval-runner
+sudo systemctl enable --now openarm-online-runner
 ```
 
 Check logs:
 
 ```bash
-journalctl -u openeval-runner
+journalctl -u openarm-online-runner
 ```
 
 ## License

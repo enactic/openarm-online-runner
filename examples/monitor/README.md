@@ -17,26 +17,26 @@ Create role:
 
 ```bash
 aws iam create-role \
-  --role-name openeval-runner-ssm-role \
+  --role-name openarm-online-runner-ssm-role \
   --assume-role-policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ssm.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
 ```
 
 ```bash
 aws iam attach-role-policy \
-  --role-name openeval-runner-ssm-role \
+  --role-name openarm-online-runner-ssm-role \
   --policy-arn arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
 ```
 
 ```bash
 aws iam attach-role-policy \
-  --role-name openeval-runner-ssm-role \
+  --role-name openarm-online-runner-ssm-role \
   --policy-arn arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
 ```
 
 Confirm:
 
 ```console
-$ aws iam list-attached-role-policies --role-name openeval-runner-ssm-role
+$ aws iam list-attached-role-policies --role-name openarm-online-runner-ssm-role
 {
     "AttachedPolicies": [
         {
@@ -57,9 +57,9 @@ Keep a note of the output.
 
 ```console
 $ aws ssm create-activation \
-  --iam-role openeval-runner-ssm-role \
+  --iam-role openarm-online-runner-ssm-role \
   --registration-limit 1 \
-  --default-instance-name openeval-runner \
+  --default-instance-name openarm-online-runner \
   --region ap-northeast-1
 {
     "ActivationId": "xxx",
@@ -116,10 +116,10 @@ $ aws ssm describe-instance-information --region ap-northeast-1
             "PlatformName": "Ubuntu",
             "PlatformVersion": "24.04",
             "ActivationId": "xxx",
-            "IamRole": "openeval-runner-ssm-role",
+            "IamRole": "openarm-online-runner-ssm-role",
             "RegistrationDate": "2026-07-29T02:54:53.664000+00:00",
             "ResourceType": "ManagedInstance",
-            "Name": "openeval-runner",
+            "Name": "openarm-online-runner",
             "IPAddress": "x.x.x.x",
             "ComputerName": "hostname",
             "SourceId": "mi-mmm",
@@ -157,11 +157,11 @@ https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/start-CloudWatch-
     "region": "ap-northeast-1"
   },
   "metrics": {
-    "namespace": "OpenEvalRunner",
+    "namespace": "OpenArmOnlineRunner",
     "metrics_collected": {
       "procstat": [
         {
-          "pattern": "openeval_runner\\.runner",
+          "pattern": "openarm_online_runner\\.runner",
           "measurement": ["pid_count"],
           "metrics_collection_interval": 60
         }
@@ -179,7 +179,7 @@ https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/start-CloudWatch-
         "collect_list": [
           {
             "file_path": "/var/log/syslog",
-            "log_group_name": "/openeval-runner/syslog",
+            "log_group_name": "/openarm-online-runner/syslog",
             "log_stream_name": "{hostname}",
             "retention_in_days": 7
           }
@@ -215,7 +215,7 @@ Log: `/opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log`
 ### Create a topic
 
 ```bash
-aws sns create-topic --name openeval-runner-alerts \
+aws sns create-topic --name openarm-online-runner-alerts \
   --region ap-northeast-1
 ```
 
@@ -235,11 +235,11 @@ Confirm your subscription via email.
 
 ```bash
 aws logs put-metric-filter \
-  --log-group-name /openeval-runner/syslog \
-  --filter-name openeval-cell-not-ready \
+  --log-group-name /openarm-online-runner/syslog \
+  --filter-name openarm-online-cell-not-ready \
   --filter-pattern '"paused: cell is not ready"' \
   --metric-transformations \
-      metricName=CellNotReady,metricNamespace=OpenEvalRunner,metricValue=1,defaultValue=0 \
+      metricName=CellNotReady,metricNamespace=OpenArmOnlineRunner,metricValue=1,defaultValue=0 \
   --region ap-northeast-1
 ```
 
@@ -247,11 +247,11 @@ aws logs put-metric-filter \
 
 ```bash
 aws cloudwatch put-metric-alarm \
-  --alarm-name openeval-runner-down \
-  --alarm-description "openeval runner process is not running" \
-  --namespace OpenEvalRunner \
+  --alarm-name openarm-online-runner-down \
+  --alarm-description "OpenArm Online runner process is not running" \
+  --namespace OpenArmOnlineRunner \
   --metric-name procstat_lookup_pid_count \
-  --dimensions Name=host,Value=<hostname> 'Name=pattern,Value=openeval_runner\.runner' Name=pid_finder,Value=native \
+  --dimensions Name=host,Value=<hostname> 'Name=pattern,Value=openarm_online_runner\.runner' Name=pid_finder,Value=native \
   --statistic Maximum \
   --period 300 \
   --evaluation-periods 1 \
@@ -266,9 +266,9 @@ aws cloudwatch put-metric-alarm \
 
 ```bash
 aws cloudwatch put-metric-alarm \
-  --alarm-name openeval-cell-not-ready \
-  --alarm-description "openeval runner reported the cell is not ready" \
-  --namespace OpenEvalRunner \
+  --alarm-name openarm-online-cell-not-ready \
+  --alarm-description "OpenArm Online runner reported the cell is not ready" \
+  --namespace OpenArmOnlineRunner \
   --metric-name CellNotReady \
   --statistic Sum \
   --period 300 \

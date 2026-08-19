@@ -18,9 +18,9 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: openeval-runner-generate-service.sh [options]
+Usage: openarm-online-runner-generate-service.sh [options]
 
-Print a systemd service file for the OpenEval runner to stdout.
+Print a systemd service file for the OpenArm Online runner to stdout.
 
 Options:
   --user USER              process owner (default: current user)
@@ -30,10 +30,10 @@ Options:
   --help                   show this help and exit
 
 Example:
-  openeval-runner-generate-service.sh \
-    | sudo tee /etc/systemd/system/openeval-runner.service
+  openarm-online-runner-generate-service.sh \
+    | sudo tee /etc/systemd/system/openarm-online-runner.service
   sudo systemctl daemon-reload
-  sudo systemctl enable --now openeval-runner
+  sudo systemctl enable --now openarm-online-runner
 USAGE
 }
 
@@ -90,7 +90,7 @@ fi
 
 cat <<SERVICE
 [Unit]
-Description=OpenEval runner
+Description=OpenArm Online runner
 After=network-online.target
 Wants=network-online.target
 
@@ -99,7 +99,7 @@ Type=simple
 User=${user_name}
 WorkingDirectory=${working_directory}
 Environment=UV_PROJECT_ENVIRONMENT=${uv_environment}
-ExecStart=${uv} run python -m openeval_runner.runner
+ExecStart=${uv} run python -m openarm_online_runner.runner
 Restart=always
 RestartSec=5
 

@@ -18,11 +18,11 @@ import json
 
 import responses
 
-from openeval_runner import job_client
-from openeval_runner.config import settings
+from openarm_online_runner import job_client
+from openarm_online_runner.config import settings
 
-API_URL = settings.OPENEVAL_API_URL
-TASK_ID = settings.OPENEVAL_TASK_ID
+API_URL = settings.OPENARM_ONLINE_API_URL
+TASK_ID = settings.OPENARM_ONLINE_TASK_ID
 
 
 @responses.activate
@@ -83,7 +83,7 @@ def test_upload_rrd(tmp_path):
     rrd_file.write_bytes(b"dummy")
 
     upload_info = {
-        "url": "http://s3:9000/openeval/rrd/abc.rrd?presigned",
+        "url": "http://s3:9000/openarm-online/rrd/abc.rrd?presigned",
         "s3_key": "rrd/upload.rrd",
     }
     responses.add(responses.GET, f"{API_URL}/api/v1/rrd/upload-url", json=upload_info)

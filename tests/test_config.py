@@ -19,8 +19,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from openeval_runner.config import Settings
-from openeval_runner import config
+from openarm_online_runner.config import Settings
+from openarm_online_runner import config
 
 
 def _datetime_mock(monkeypatch, hour, minute):
