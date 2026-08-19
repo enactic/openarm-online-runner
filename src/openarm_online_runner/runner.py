@@ -21,8 +21,8 @@ from pathlib import Path
 
 import openarm_driver
 
-from openeval_runner import converter, evaluator, job_client
-from openeval_runner.config import logger, settings
+from . import converter, evaluator, job_client
+from .config import logger, settings
 
 
 def _not_ready_path():

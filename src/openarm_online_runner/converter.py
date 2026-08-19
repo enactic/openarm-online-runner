@@ -16,8 +16,8 @@
 
 from openarm_dataset import Dataset
 
-from openeval_runner import evaluator
-from openeval_runner.config import logger, settings
+from . import evaluator
+from .config import logger, settings
 
 
 def convert(job):

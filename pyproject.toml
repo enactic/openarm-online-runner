@@ -13,7 +13,7 @@
 # limitations under the License.
 
 [project]
-name = "openeval-runner"
+name = "openarm-online-runner"
 version = "0.1.0"
 authors = [{ name = "Enactic, Inc." }]
 description = "Evaluate submitted policy servers in OpenArm Cell automatically."

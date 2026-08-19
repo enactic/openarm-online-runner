@@ -16,9 +16,9 @@
 
 from pathlib import Path
 
-from openeval_runner import converter
-from openeval_runner.config import settings
-from openeval_runner.evaluator import evaluate
+from openarm_online_runner import converter
+from openarm_online_runner.config import settings
+from openarm_online_runner.evaluator import evaluate
 
 TESTS_DIR = Path(__file__).parent
 

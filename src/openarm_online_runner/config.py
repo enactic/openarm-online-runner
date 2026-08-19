@@ -38,9 +38,9 @@ class Settings(BaseSettings):
     DATAFLOW_FILE: str = "dataflow.yaml"
     RRD_FPS: int = Field(default=30, gt=0)
 
-    OPENEVAL_API_URL: str = "http://localhost:8000"
-    OPENEVAL_API_KEY: str
-    OPENEVAL_TASK_ID: int
+    OPENARM_ONLINE_API_URL: str = "http://localhost:8000"
+    OPENARM_ONLINE_API_KEY: str
+    OPENARM_ONLINE_TASK_ID: int
 
     ACTIVE_TIME_START: time | None = None
     ACTIVE_TIME_END: time | None = None
@@ -75,4 +75,4 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
 
-logger = logging.getLogger("openeval.runner")
+logger = logging.getLogger("openarm_online.runner")

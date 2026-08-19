@@ -22,7 +22,7 @@ from pathlib import Path
 
 from openarm_dataset import Dataset
 
-from openeval_runner.config import logger, settings
+from .config import logger, settings
 
 NODE_NAME_PATTERN = "dora-openarm|opencv-video-capture"
 
