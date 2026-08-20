@@ -49,6 +49,9 @@ cp .env.example .env
 editor .env
 ```
 
+To read a different file, set the `ENV_FILE` environment variable to
+its path.
+
 ### 6. Build the dataflow
 
 ```bash

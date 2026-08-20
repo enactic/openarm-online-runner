@@ -15,6 +15,7 @@
 """Configuration globals and logging setup."""
 
 import logging
+import os
 from datetime import datetime, time
 
 from pydantic import Field
@@ -28,6 +29,11 @@ class Settings(BaseSettings):
         env_file=".env",
         extra="ignore",
     )
+
+    def __init__(self, **kwargs):
+        """Read settings from the file named by ENV_FILE instead of .env."""
+        kwargs.setdefault("_env_file", os.environ.get("ENV_FILE", ".env"))
+        super().__init__(**kwargs)
 
     POLL_INTERVAL: int = 3
     EVALUATE_TIMEOUT: int = Field(default=180, gt=0)
