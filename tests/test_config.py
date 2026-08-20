@@ -23,6 +23,15 @@ from openarm_online_runner.config import Settings
 from openarm_online_runner import config
 
 
+def test_env_file(tmp_path, monkeypatch):
+    """Settings reads the .env file named by ENV_FILE."""
+    env_file = tmp_path / "custom.env"
+    env_file.write_text("POLL_INTERVAL=42\n")
+    monkeypatch.delenv("POLL_INTERVAL", raising=False)
+    monkeypatch.setenv("ENV_FILE", str(env_file))
+    assert Settings().POLL_INTERVAL == 42
+
+
 def _datetime_mock(monkeypatch, hour, minute):
     datetime_mock = MagicMock(wraps=datetime)
     datetime_mock.now.return_value = datetime(2026, 1, 1, hour, minute)
