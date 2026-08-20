@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Evaluates queued jobs in an OpenArm Cell as a daemon."""
+"""Evaluates queued jobs and teleoperation offers in an OpenArm Cell as a daemon."""
 
 import time
 import shutil
@@ -21,7 +21,7 @@ from pathlib import Path
 
 import openarm_driver
 
-from . import converter, evaluator, job_client
+from . import converter, evaluator, job_client, teleoperation_client, teleoperator
 from .config import logger, settings
 
 
@@ -103,8 +103,24 @@ def run_job(job):
         _cleanup_recording(job)
 
 
+def run_teleoperation(offer):
+    """Execute a single teleoperation session."""
+    logger.debug("[offer=%s] teleoperation started", offer["id"])
+
+    try:
+        teleoperator.teleoperate(
+            offer,
+            lambda sdp: teleoperation_client.answer_offer(offer["id"], sdp),
+        )
+        logger.debug("[offer=%s] teleoperation ended", offer["id"])
+    except Exception:
+        logger.exception("[offer=%s] teleoperation failed", offer["id"])
+    finally:
+        _stop_arms()
+
+
 def main():
-    """Poll for jobs and executes them."""
+    """Poll for teleoperation offers and jobs and execute them."""
     logger.info("started (poll_interval=%ds)", settings.POLL_INTERVAL)
     paused = False
     while True:
@@ -126,6 +142,13 @@ def main():
         if paused:
             logger.info("resumed polling")
             paused = False
+
+        # A browser user is waiting for a teleoperation session, so
+        # offers take priority over queued jobs.
+        offers = teleoperation_client.fetch_pending_offers()
+        if offers:
+            run_teleoperation(offers[0])
+            continue
 
         job = job_client.fetch_next()
         if job is None:
