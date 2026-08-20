@@ -30,6 +30,14 @@ dependencies = [
     "requests>=2.34.2",
 ]
 
+[project.urls]
+Changelog = "https://github.com/enactic/openarm-online-runner/releases"
+Issues = "https://github.com/enactic/openarm-online-runner/issues"
+Repository = "https://github.com/enactic/openarm-online-runner"
+
+[project.scripts]
+openarm-online-runner = "openarm_online_runner.runner:main"
+
 [build-system]
 requires = ["uv_build"]
 build-backend = "uv_build"

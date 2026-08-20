@@ -58,7 +58,7 @@ UV_PROJECT_ENVIRONMENT=.venv-runner uv run dora build dataflow.yaml --uv
 ## Run
 
 ```bash
-UV_PROJECT_ENVIRONMENT=.venv-runner uv run python -m openarm_online_runner.runner
+UV_PROJECT_ENVIRONMENT=.venv-runner uv run openarm-online-runner
 ```
 
 ## Teleoperation

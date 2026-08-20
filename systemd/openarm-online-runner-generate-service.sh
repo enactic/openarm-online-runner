@@ -99,7 +99,7 @@ Type=simple
 User=${user_name}
 WorkingDirectory=${working_directory}
 Environment=UV_PROJECT_ENVIRONMENT=${uv_environment}
-ExecStart=${uv} run python -m openarm_online_runner.runner
+ExecStart=${uv} run openarm-online-runner
 Restart=always
 RestartSec=5
 
