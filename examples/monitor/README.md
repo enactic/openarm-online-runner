@@ -161,7 +161,7 @@ https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/start-CloudWatch-
     "metrics_collected": {
       "procstat": [
         {
-          "pattern": "openarm_online_runner\\.runner",
+          "pattern": "openarm-online-runner",
           "measurement": ["pid_count"],
           "metrics_collection_interval": 60
         }
@@ -251,7 +251,7 @@ aws cloudwatch put-metric-alarm \
   --alarm-description "OpenArm Online runner process is not running" \
   --namespace OpenArmOnlineRunner \
   --metric-name procstat_lookup_pid_count \
-  --dimensions Name=host,Value=<hostname> 'Name=pattern,Value=openarm_online_runner\.runner' Name=pid_finder,Value=native \
+  --dimensions Name=host,Value=<hostname> 'Name=pattern,Value=openarm-online-runner' Name=pid_finder,Value=native \
   --statistic Maximum \
   --period 300 \
   --evaluation-periods 1 \
