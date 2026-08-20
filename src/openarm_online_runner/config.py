@@ -32,10 +32,12 @@ class Settings(BaseSettings):
     POLL_INTERVAL: int = 3
     EVALUATE_TIMEOUT: int = Field(default=180, gt=0)
     RESET_TIMEOUT: int = Field(default=120, gt=0)
+    TELEOPERATE_TIMEOUT: int = Field(default=300, gt=0)
 
     RECORDER_BASE_DIRECTORY: str = "tmp"
     STATE_DIRECTORY: str = "state"
     DATAFLOW_FILE: str = "dataflow.yaml"
+    TELEOPERATION_DATAFLOW_FILE: str = "dataflow-teleoperation.yaml"
     RRD_FPS: int = Field(default=30, gt=0)
 
     OPENARM_ONLINE_API_URL: str = "http://localhost:8000"
