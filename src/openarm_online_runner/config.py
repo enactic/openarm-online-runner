@@ -25,23 +25,28 @@ from pydantic import Field, PrivateAttr, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 _DATAFLOW_FILE_PATTERN = re.compile(r"DATAFLOW_FILE_(\d+)")
+_DATAFLOW_ENV_FILE_PATTERN = re.compile(r"DATAFLOW_ENV_FILE_(\d+)")
 
 
-def _read_dataflow_files(env_file):
-    """Collect per-task DATAFLOW_FILE_${TASK_ID} overrides.
+def _read_env(env_file):
+    """Read the .env file and os.environ as one dict.
 
     pydantic-settings can't declare fields with dynamic names and
     doesn't export .env values to os.environ, so we merge the .env
     file and os.environ ourselves. Like other settings, real
     environment variables win over the .env file.
     """
-    env = dict(dotenv_values(env_file)) | dict(os.environ)
-    files = {}
+    return dict(dotenv_values(env_file)) | dict(os.environ)
+
+
+def _collect_task_values(pattern, env):
+    """Collect per-task ${PREFIX}_${TASK_ID} values matching pattern."""
+    values = {}
     for name, value in env.items():
-        match = _DATAFLOW_FILE_PATTERN.fullmatch(name)
+        match = pattern.fullmatch(name)
         if match and value:
-            files[int(match.group(1))] = value
-    return files
+            values[int(match.group(1))] = value
+    return values
 
 
 class Settings(BaseSettings):
@@ -56,7 +61,9 @@ class Settings(BaseSettings):
         """Read settings from the file named by ENV_FILE instead of .env."""
         kwargs.setdefault("_env_file", os.environ.get("ENV_FILE", ".env"))
         super().__init__(**kwargs)
-        self._dataflow_files = _read_dataflow_files(kwargs["_env_file"])
+        env = _read_env(kwargs["_env_file"])
+        self._dataflow_files = _collect_task_values(_DATAFLOW_FILE_PATTERN, env)
+        self._dataflow_env_files = _collect_task_values(_DATAFLOW_ENV_FILE_PATTERN, env)
 
     POLL_INTERVAL: int = 3
     EVALUATE_TIMEOUT: int = Field(default=180, gt=0)
@@ -70,6 +77,7 @@ class Settings(BaseSettings):
     RRD_FPS: int = Field(default=30, gt=0)
 
     _dataflow_files: dict[int, str] = PrivateAttr(default_factory=dict)
+    _dataflow_env_files: dict[int, str] = PrivateAttr(default_factory=dict)
 
     def dataflow_file(self, task_id) -> str:
         """Dataflow file for the task.
@@ -78,6 +86,10 @@ class Settings(BaseSettings):
         DEFAULT_DATAFLOW_FILE.
         """
         return self._dataflow_files.get(task_id, self.DEFAULT_DATAFLOW_FILE)
+
+    def dataflow_env_file(self, task_id) -> str | None:
+        """.env file for the task's dataflow: DATAFLOW_ENV_FILE_${TASK_ID}."""
+        return self._dataflow_env_files.get(task_id)
 
     OPENARM_ONLINE_API_URL: str = "http://localhost:8000"
     OPENARM_ONLINE_API_KEY: str

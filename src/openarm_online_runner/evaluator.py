@@ -18,6 +18,7 @@ import os
 import subprocess
 from pathlib import Path
 
+from dotenv import dotenv_values
 from openarm_dataset import Dataset
 
 from . import dataflow
@@ -68,10 +69,27 @@ def _run(phase, job, env, timeout):
     return returncode == 0
 
 
+def _base_env(job):
+    """Environment for the job's dataflow.
+
+    The task's .env file (DATAFLOW_ENV_FILE_${TASK_ID}), if any, wins
+    over the inherited environment.
+    """
+    env = os.environ.copy()
+    env_file = settings.dataflow_env_file(job["task_id"])
+    if env_file is not None:
+        env |= {
+            name: value
+            for name, value in dotenv_values(env_file).items()
+            if value is not None
+        }
+    return env
+
+
 def evaluate(job):
     """Evaluate a policy server."""
     timeout = settings.EVALUATE_TIMEOUT
-    env = os.environ.copy() | {
+    env = _base_env(job) | {
         "IMAGE": job["docker_tag"],
         "DIRECTORY": settings.RECORDER_BASE_DIRECTORY,
         "NAME": _recording_name(job, EVALUATE_PHASE),
@@ -83,7 +101,7 @@ def evaluate(job):
 def reset(job):
     """Reset the evaluation environment."""
     timeout = settings.RESET_TIMEOUT
-    env = os.environ.copy() | {
+    env = _base_env(job) | {
         "IMAGE": job["reset_docker_tag"],
         "DIRECTORY": settings.RECORDER_BASE_DIRECTORY,
         "NAME": _recording_name(job, RESET_PHASE),
