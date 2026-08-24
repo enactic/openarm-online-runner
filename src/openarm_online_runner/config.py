@@ -26,6 +26,10 @@ from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 _DATAFLOW_FILE_PATTERN = re.compile(r"DATAFLOW_FILE_(\d+)")
 _DATAFLOW_ENV_FILE_PATTERN = re.compile(r"DATAFLOW_ENV_FILE_(\d+)")
+_TELEOPERATION_DATAFLOW_FILE_PATTERN = re.compile(r"TELEOPERATION_DATAFLOW_FILE_(\d+)")
+_TELEOPERATION_DATAFLOW_ENV_FILE_PATTERN = re.compile(
+    r"TELEOPERATION_DATAFLOW_ENV_FILE_(\d+)"
+)
 
 
 def _read_env(env_file):
@@ -64,6 +68,12 @@ class Settings(BaseSettings):
         env = _read_env(kwargs["_env_file"])
         self._dataflow_files = _collect_task_values(_DATAFLOW_FILE_PATTERN, env)
         self._dataflow_env_files = _collect_task_values(_DATAFLOW_ENV_FILE_PATTERN, env)
+        self._teleoperation_dataflow_files = _collect_task_values(
+            _TELEOPERATION_DATAFLOW_FILE_PATTERN, env
+        )
+        self._teleoperation_dataflow_env_files = _collect_task_values(
+            _TELEOPERATION_DATAFLOW_ENV_FILE_PATTERN, env
+        )
 
     POLL_INTERVAL: int = 3
     EVALUATE_TIMEOUT: int = Field(default=180, gt=0)
@@ -73,11 +83,15 @@ class Settings(BaseSettings):
     RECORDER_BASE_DIRECTORY: str = "tmp"
     STATE_DIRECTORY: str = "state"
     DEFAULT_DATAFLOW_FILE: str = "dataflow.yaml"
-    TELEOPERATION_DATAFLOW_FILE: str = "dataflow-teleoperation.yaml"
+    DEFAULT_TELEOPERATION_DATAFLOW_FILE: str = "dataflow-teleoperation.yaml"
     RRD_FPS: int = Field(default=30, gt=0)
 
     _dataflow_files: dict[int, str] = PrivateAttr(default_factory=dict)
     _dataflow_env_files: dict[int, str] = PrivateAttr(default_factory=dict)
+    _teleoperation_dataflow_files: dict[int, str] = PrivateAttr(default_factory=dict)
+    _teleoperation_dataflow_env_files: dict[int, str] = PrivateAttr(
+        default_factory=dict
+    )
 
     def dataflow_file(self, task_id) -> str:
         """Dataflow file for the task.
@@ -90,6 +104,23 @@ class Settings(BaseSettings):
     def dataflow_env_file(self, task_id) -> str | None:
         """.env file for the task's dataflow: DATAFLOW_ENV_FILE_${TASK_ID}."""
         return self._dataflow_env_files.get(task_id)
+
+    def teleoperation_dataflow_file(self, task_id) -> str:
+        """Teleoperation dataflow file for the task.
+
+        TELEOPERATION_DATAFLOW_FILE_${TASK_ID} takes precedence over
+        DEFAULT_TELEOPERATION_DATAFLOW_FILE.
+        """
+        return self._teleoperation_dataflow_files.get(
+            task_id, self.DEFAULT_TELEOPERATION_DATAFLOW_FILE
+        )
+
+    def teleoperation_dataflow_env_file(self, task_id) -> str | None:
+        """.env file for the task's teleoperation dataflow.
+
+        TELEOPERATION_DATAFLOW_ENV_FILE_${TASK_ID}, if any.
+        """
+        return self._teleoperation_dataflow_env_files.get(task_id)
 
     OPENARM_ONLINE_API_URL: str = "http://localhost:8000"
     OPENARM_ONLINE_API_KEY: str

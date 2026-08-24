@@ -14,11 +14,9 @@
 
 """Evaluate a policy server."""
 
-import os
 import subprocess
 from pathlib import Path
 
-from dotenv import dotenv_values
 from openarm_dataset import Dataset
 
 from . import dataflow
@@ -70,20 +68,8 @@ def _run(phase, job, env, timeout):
 
 
 def _base_env(job):
-    """Environment for the job's dataflow.
-
-    The task's .env file (DATAFLOW_ENV_FILE_${TASK_ID}), if any, wins
-    over the inherited environment.
-    """
-    env = os.environ.copy()
-    env_file = settings.dataflow_env_file(job["task_id"])
-    if env_file is not None:
-        env |= {
-            name: value
-            for name, value in dotenv_values(env_file).items()
-            if value is not None
-        }
-    return env
+    """Environment for the job's dataflow."""
+    return dataflow.base_env(settings.dataflow_env_file(job["task_id"]))
 
 
 def evaluate(job):

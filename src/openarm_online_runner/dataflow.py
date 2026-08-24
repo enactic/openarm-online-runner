@@ -19,6 +19,8 @@ import signal
 import subprocess
 import time
 
+from dotenv import dotenv_values
+
 from .config import logger
 
 # Wait time for all nodes in the dataflow to start. The
@@ -31,6 +33,22 @@ START_WAIT = 60
 # dora-openarm-docker-policy-server node's container may take some
 # time. We use 30 seconds for now, but a better value may exist.
 STOP_WAIT = 30
+
+
+def base_env(env_file):
+    """Build the base environment for a dataflow.
+
+    The dataflow's .env file, if any, wins over the inherited
+    environment.
+    """
+    env = os.environ.copy()
+    if env_file is not None:
+        env |= {
+            name: value
+            for name, value in dotenv_values(env_file).items()
+            if value is not None
+        }
+    return env
 
 
 def start(dataflow_file, env, stop_after):

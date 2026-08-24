@@ -77,6 +77,35 @@ def test_dataflow_env_file_per_task(monkeypatch):
     assert settings.dataflow_env_file(1) is None
 
 
+def test_teleoperation_dataflow_file_per_task(monkeypatch):
+    """teleoperation_dataflow_file() prefers the task's file."""
+    monkeypatch.setenv(
+        "TELEOPERATION_DATAFLOW_FILE_2", "dataflow-teleoperation-task2.yaml"
+    )
+    settings = Settings()
+    assert (
+        settings.teleoperation_dataflow_file(2) == "dataflow-teleoperation-task2.yaml"
+    )
+    assert settings.teleoperation_dataflow_file(1) == "dataflow-teleoperation.yaml"
+    # TELEOPERATION_DATAFLOW_FILE_${TASK_ID} isn't confused with
+    # DATAFLOW_FILE_${TASK_ID}.
+    assert settings.dataflow_file(2) == "dataflow.yaml"
+
+
+def test_teleoperation_dataflow_env_file_per_task(monkeypatch):
+    """teleoperation_dataflow_env_file() returns the task's .env file, if any."""
+    monkeypatch.setenv(
+        "TELEOPERATION_DATAFLOW_ENV_FILE_2", "dataflows/task-2/.env-teleoperation"
+    )
+    settings = Settings()
+    assert (
+        settings.teleoperation_dataflow_env_file(2)
+        == "dataflows/task-2/.env-teleoperation"
+    )
+    assert settings.teleoperation_dataflow_env_file(1) is None
+    assert settings.dataflow_env_file(2) is None
+
+
 def _datetime_mock(monkeypatch, hour, minute):
     datetime_mock = MagicMock(wraps=datetime)
     datetime_mock.now.return_value = datetime(2026, 1, 1, hour, minute)

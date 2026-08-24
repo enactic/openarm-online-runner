@@ -20,7 +20,7 @@ import sys
 from openarm_online_runner import dataflow, teleoperator
 from openarm_online_runner.config import settings
 
-OFFER = {"id": 1, "sdp": "offer-sdp"}
+OFFER = {"id": 1, "task_id": 1, "sdp": "offer-sdp"}
 
 # Stand-ins for the dataflow's keyboard node in WebRTC-only mode: connect
 # to ANSWER_HOST/ANSWER_PORT and write the bare answer SDP.
@@ -75,10 +75,26 @@ def test_teleoperate(monkeypatch):
     assert teleoperator.teleoperate(OFFER, answers.append)
 
     assert answers == ["answer-sdp"]
-    assert started["dataflow_file"] == settings.TELEOPERATION_DATAFLOW_FILE
+    assert started["dataflow_file"] == settings.DEFAULT_TELEOPERATION_DATAFLOW_FILE
     assert started["env"]["OFFER"] == "offer-sdp"
     assert started["env"]["TIMEOUT"] == str(settings.TELEOPERATE_TIMEOUT)
     assert started["stop_after"] == settings.TELEOPERATE_TIMEOUT + dataflow.START_WAIT
+
+
+def test_teleoperate_dataflow_env_file(tmp_path, monkeypatch):
+    """teleoperate() merges the task's .env file into the dataflow environment."""
+    env_file = tmp_path / "task.env"
+    env_file.write_text("""\
+TELEOPERATION_DATAFLOW_ENV_FILE_ONLY=from-env-file
+""")
+    monkeypatch.setattr(
+        settings, "_teleoperation_dataflow_env_files", {1: str(env_file)}
+    )
+    started = _fake_dataflow(monkeypatch, ANSWER_SCRIPT)
+
+    answers = []
+    assert teleoperator.teleoperate(OFFER, answers.append)
+    assert started["env"]["TELEOPERATION_DATAFLOW_ENV_FILE_ONLY"] == "from-env-file"
 
 
 def test_teleoperate_start_fails(monkeypatch):
