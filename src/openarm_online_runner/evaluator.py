@@ -37,14 +37,15 @@ def recording_directory(job, phase):
 
 
 def _run(phase, job, env, timeout):
-    logger.info("[job=%s] %s: %s", job["job_id"], phase, settings.DATAFLOW_FILE)
+    dataflow_file = settings.dataflow_file(job["task_id"])
+    logger.info("[job=%s] %s: %s", job["job_id"], phase, dataflow_file)
 
     # dora stops the dataflow by itself after stop_after seconds, so
     # hitting wait_timeout means that dora failed to do so.
     stop_after = timeout + dataflow.START_WAIT
     wait_timeout = stop_after + dataflow.STOP_WAIT
     try:
-        proc = dataflow.start(settings.DATAFLOW_FILE, env, stop_after)
+        proc = dataflow.start(dataflow_file, env, stop_after)
     except (OSError, subprocess.SubprocessError):
         logger.exception("[job=%s] %s: failed to run dora", job["job_id"], phase)
         return False

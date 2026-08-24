@@ -16,11 +16,32 @@
 
 import logging
 import os
+import re
 from datetime import datetime, time
 from typing import Annotated
 
-from pydantic import Field, field_validator
+from dotenv import dotenv_values
+from pydantic import Field, PrivateAttr, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+_DATAFLOW_FILE_PATTERN = re.compile(r"DATAFLOW_FILE_(\d+)")
+
+
+def _read_dataflow_files(env_file):
+    """Collect per-task DATAFLOW_FILE_${TASK_ID} overrides.
+
+    pydantic-settings can't declare fields with dynamic names and
+    doesn't export .env values to os.environ, so we merge the .env
+    file and os.environ ourselves. Like other settings, real
+    environment variables win over the .env file.
+    """
+    env = dict(dotenv_values(env_file)) | dict(os.environ)
+    files = {}
+    for name, value in env.items():
+        match = _DATAFLOW_FILE_PATTERN.fullmatch(name)
+        if match and value:
+            files[int(match.group(1))] = value
+    return files
 
 
 class Settings(BaseSettings):
@@ -35,6 +56,7 @@ class Settings(BaseSettings):
         """Read settings from the file named by ENV_FILE instead of .env."""
         kwargs.setdefault("_env_file", os.environ.get("ENV_FILE", ".env"))
         super().__init__(**kwargs)
+        self._dataflow_files = _read_dataflow_files(kwargs["_env_file"])
 
     POLL_INTERVAL: int = 3
     EVALUATE_TIMEOUT: int = Field(default=180, gt=0)
@@ -43,9 +65,19 @@ class Settings(BaseSettings):
 
     RECORDER_BASE_DIRECTORY: str = "tmp"
     STATE_DIRECTORY: str = "state"
-    DATAFLOW_FILE: str = "dataflow.yaml"
+    DEFAULT_DATAFLOW_FILE: str = "dataflow.yaml"
     TELEOPERATION_DATAFLOW_FILE: str = "dataflow-teleoperation.yaml"
     RRD_FPS: int = Field(default=30, gt=0)
+
+    _dataflow_files: dict[int, str] = PrivateAttr(default_factory=dict)
+
+    def dataflow_file(self, task_id) -> str:
+        """Dataflow file for the task.
+
+        DATAFLOW_FILE_${TASK_ID} takes precedence over
+        DEFAULT_DATAFLOW_FILE.
+        """
+        return self._dataflow_files.get(task_id, self.DEFAULT_DATAFLOW_FILE)
 
     OPENARM_ONLINE_API_URL: str = "http://localhost:8000"
     OPENARM_ONLINE_API_KEY: str

@@ -25,11 +25,11 @@ def test_next_job_polls_tasks_in_order(monkeypatch):
 
     def fetch_next(task_id):
         polled.append(task_id)
-        return {"job_id": 10} if task_id == 2 else None
+        return {"job_id": 10, "task_id": task_id} if task_id == 2 else None
 
     monkeypatch.setattr(runner.job_client, "fetch_next", fetch_next)
 
-    assert runner._next_job() == {"job_id": 10}
+    assert runner._next_job() == {"job_id": 10, "task_id": 2}
     assert polled == [1, 2]
 
 
