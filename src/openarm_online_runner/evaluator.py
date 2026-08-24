@@ -39,10 +39,13 @@ def recording_directory(job, phase):
 def _run(phase, job, env, timeout):
     logger.info("[job=%s] %s: %s", job["job_id"], phase, settings.DATAFLOW_FILE)
 
-    proc = None
     wait_timeout = timeout + dataflow.OVERHEAD_WAIT
     try:
         proc = dataflow.start(settings.DATAFLOW_FILE, env)
+    except (OSError, subprocess.SubprocessError):
+        logger.exception("[job=%s] %s: failed to run dora", job["job_id"], phase)
+        return False
+    try:
         returncode = proc.wait(timeout=wait_timeout)
     except subprocess.TimeoutExpired:
         logger.warning(
@@ -53,9 +56,6 @@ def _run(phase, job, env, timeout):
             timeout,
             dataflow.OVERHEAD_WAIT,
         )
-        return False
-    except (OSError, subprocess.SubprocessError):
-        logger.exception("[job=%s] %s: failed to run dora", job["job_id"], phase)
         return False
     finally:
         dataflow.shutdown(proc)

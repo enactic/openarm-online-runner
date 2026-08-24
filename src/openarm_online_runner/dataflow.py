@@ -21,8 +21,6 @@ import time
 
 from .config import logger
 
-NODE_NAME_PATTERN = "dora-openarm|opencv-video-capture"
-
 # The dora-openarm-docker-policy-server node can be especially slow to start,
 # so we add this as overhead to the timeout.
 # We use 60 seconds for now, but a better value may exist.
@@ -36,66 +34,50 @@ def start(dataflow_file, env):
     return subprocess.Popen(cmd, env=env, start_new_session=True)
 
 
-def _kill(pgid, sig, fallback):
+def _kill_group(pgid, sig):
+    """os.killpg() but return False if the group no longer exists."""
     try:
         os.killpg(pgid, sig)
-    except (ProcessLookupError, OSError):
-        try:
-            fallback()
-        except OSError as err:
-            logger.debug("kill failed: %s", err)
-
-
-def _kill_process(proc):
-    if proc.poll() is not None:
-        return
-
-    pid = proc.pid
-    logger.info("Killing dora process (pid=%d)", pid)
-
-    for sig, fallback, timeout in [
-        (signal.SIGTERM, proc.terminate, 5),
-        (signal.SIGKILL, proc.kill, 3),
-    ]:
-        _kill(pid, sig, fallback)
-        try:
-            proc.wait(timeout=timeout)
-            return
-        except subprocess.TimeoutExpired:
-            logger.warning("kill_process: dora did not exit after %s", sig.name)
-
-
-def _pgrep():
-    try:
-        subprocess.run(
-            ["pgrep", "-f", NODE_NAME_PATTERN], check=True, capture_output=True
-        )
         return True
-    except subprocess.CalledProcessError as err:
-        logger.debug("pgrep failed: %s", err)
+    except ProcessLookupError:
+        return False
+    except OSError as err:
+        logger.debug("killpg(%d, %d) failed: %s", pgid, sig, err)
         return False
 
 
-def _pkill(sig):
-    cmd = ["pkill", f"-{sig.value}", "-f", NODE_NAME_PATTERN]
-    try:
-        subprocess.run(cmd, timeout=5, check=True, capture_output=True)
-    except subprocess.CalledProcessError as err:
-        logger.debug("pkill failed: %s", err)
+def _group_exists(pgid):
+    """Whether any process in the group is still alive."""
+    return _kill_group(pgid, 0)
 
 
-def _kill_orphaned_workers():
-    if not _pgrep():
-        return
-    _pkill(signal.SIGTERM)
-    if not _pgrep():
-        return
-    time.sleep(2)
-    _pkill(signal.SIGKILL)
+def _wait_group(proc, pgid, timeout):
+    """Wait until the process group is empty; return False on timeout."""
+    deadline = time.monotonic() + timeout
+    while True:
+        # Reap dora itself so that only live node workers keep the
+        # group alive.
+        proc.poll()
+        if not _group_exists(pgid):
+            return True
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.1)
 
 
 def shutdown(proc):
-    """Kill the dataflow process, if any, and any orphaned node workers."""
-    if proc is not None:
-        _kill_process(proc)
-    _kill_orphaned_workers()
+    """Kill the dataflow process group.
+
+    start() runs dora in its own session, so dora and all of its node
+    workers share the process group whose ID is dora's PID. Signaling
+    the group reaches node workers even after dora itself has exited,
+    without touching unrelated processes.
+    """
+    pgid = proc.pid
+    for sig, timeout in [(signal.SIGTERM, 5), (signal.SIGKILL, 3)]:
+        if not _kill_group(pgid, sig):
+            return
+        logger.info("sent %s to dataflow process group (pgid=%d)", sig.name, pgid)
+        if _wait_group(proc, pgid, timeout):
+            return
+        logger.warning("shutdown: dataflow did not exit after %s", sig.name)
