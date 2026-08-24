@@ -28,6 +28,20 @@ def _group_exists(pgid):
         return False
 
 
+def test_start_stop_after(monkeypatch):
+    """start() tells dora to stop the dataflow after stop_after seconds."""
+    commands = []
+
+    def fake_popen(cmd, env, start_new_session):
+        commands.append(cmd)
+
+    monkeypatch.setattr(dataflow.subprocess, "Popen", fake_popen)
+    dataflow.start("dataflow.yaml", {}, 180)
+    assert commands == [
+        ["dora", "run", "dataflow.yaml", "--uv", "--stop-after", "180s"]
+    ]
+
+
 def test_shutdown_kills_process_group():
     """shutdown() kills the running leader and its workers."""
     proc = subprocess.Popen(["bash", "-c", "sleep 60 & wait"], start_new_session=True)

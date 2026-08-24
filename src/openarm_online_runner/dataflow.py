@@ -21,15 +21,25 @@ import time
 
 from .config import logger
 
-# The dora-openarm-docker-policy-server node can be especially slow to start,
-# so we add this as overhead to the timeout.
-# We use 60 seconds for now, but a better value may exist.
-OVERHEAD_WAIT = 60
+# Wait time for all nodes in the dataflow to start. The
+# dora-openarm-docker-policy-server node can be especially slow to
+# start. We use 60 seconds for now, but a better value may exist.
+START_WAIT = 60
+
+# Wait time from when dora starts stopping the dataflow until all of
+# its nodes actually exit. Stopping the
+# dora-openarm-docker-policy-server node's container may take some
+# time. We use 30 seconds for now, but a better value may exist.
+STOP_WAIT = 30
 
 
-def start(dataflow_file, env):
-    """Start `dora run` for the dataflow in its own process group."""
-    cmd = ["dora", "run", dataflow_file, "--uv"]
+def start(dataflow_file, env, stop_after):
+    """Start `dora run` for the dataflow in its own process group.
+
+    dora gracefully stops the dataflow by itself after stop_after
+    seconds.
+    """
+    cmd = ["dora", "run", dataflow_file, "--uv", "--stop-after", f"{stop_after}s"]
     logger.info("starting dataflow: %s", " ".join(cmd))
     return subprocess.Popen(cmd, env=env, start_new_session=True)
 
