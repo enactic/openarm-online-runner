@@ -24,9 +24,9 @@ HEADERS = {
 }
 
 
-def fetch_next():
-    """Fetch job from the job server."""
-    url = f"{settings.OPENARM_ONLINE_API_URL}/api/v1/tasks/{settings.OPENARM_ONLINE_TASK_ID}/jobs/claim"
+def fetch_next(task_id):
+    """Fetch job for the task from the job server."""
+    url = f"{settings.OPENARM_ONLINE_API_URL}/api/v1/tasks/{task_id}/jobs/claim"
     response = requests.post(url, headers=HEADERS, timeout=API_TIMEOUT)
     response.raise_for_status()
     return response.json()

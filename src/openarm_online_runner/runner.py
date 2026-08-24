@@ -119,6 +119,24 @@ def run_teleoperation(offer):
         _stop_arms()
 
 
+def _next_offer():
+    """Return the oldest pending teleoperation offer across all tasks."""
+    for task_id in settings.OPENARM_ONLINE_TASK_IDS:
+        offers = teleoperation_client.fetch_pending_offers(task_id)
+        if offers:
+            return offers[0]
+    return None
+
+
+def _next_job():
+    """Claim the next queued job across all tasks."""
+    for task_id in settings.OPENARM_ONLINE_TASK_IDS:
+        job = job_client.fetch_next(task_id)
+        if job is not None:
+            return job
+    return None
+
+
 def main():
     """Poll for teleoperation offers and jobs and execute them."""
     logger.info("started (poll_interval=%ds)", settings.POLL_INTERVAL)
@@ -145,12 +163,12 @@ def main():
 
         # A browser user is waiting for a teleoperation session, so
         # offers take priority over queued jobs.
-        offers = teleoperation_client.fetch_pending_offers()
-        if offers:
-            run_teleoperation(offers[0])
+        offer = _next_offer()
+        if offer is not None:
+            run_teleoperation(offer)
             continue
 
-        job = job_client.fetch_next()
+        job = _next_job()
         if job is None:
             time.sleep(settings.POLL_INTERVAL)
             continue

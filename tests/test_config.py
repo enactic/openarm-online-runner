@@ -18,9 +18,23 @@ from datetime import datetime, time
 from unittest.mock import MagicMock
 
 import pytest
+from pydantic import ValidationError
 
 from openarm_online_runner.config import Settings
 from openarm_online_runner import config
+
+
+def test_task_ids_comma_separated(monkeypatch):
+    """OPENARM_ONLINE_TASK_IDS accepts a comma-separated list."""
+    monkeypatch.setenv("OPENARM_ONLINE_TASK_IDS", "1, 2,3")
+    assert Settings().OPENARM_ONLINE_TASK_IDS == [1, 2, 3]
+
+
+def test_task_ids_empty(monkeypatch):
+    """OPENARM_ONLINE_TASK_IDS rejects an empty list."""
+    monkeypatch.setenv("OPENARM_ONLINE_TASK_IDS", "")
+    with pytest.raises(ValidationError):
+        Settings()
 
 
 def test_env_file(tmp_path, monkeypatch):

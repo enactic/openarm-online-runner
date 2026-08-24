@@ -17,9 +17,10 @@
 import logging
 import os
 from datetime import datetime, time
+from typing import Annotated
 
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -48,7 +49,15 @@ class Settings(BaseSettings):
 
     OPENARM_ONLINE_API_URL: str = "http://localhost:8000"
     OPENARM_ONLINE_API_KEY: str
-    OPENARM_ONLINE_TASK_ID: int
+    OPENARM_ONLINE_TASK_IDS: Annotated[list[int], NoDecode] = Field(min_length=1)
+
+    @field_validator("OPENARM_ONLINE_TASK_IDS", mode="before")
+    @classmethod
+    def _split_task_ids(cls, value):
+        """Parse a comma-separated task ID list such as "1,2,3"."""
+        if isinstance(value, str):
+            return [part.strip() for part in value.split(",") if part.strip()]
+        return value
 
     ACTIVE_TIME_START: time | None = None
     ACTIVE_TIME_END: time | None = None
