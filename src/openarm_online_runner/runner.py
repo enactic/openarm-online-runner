@@ -116,7 +116,9 @@ def run_teleoperation(offer):
     except Exception:
         logger.exception("[offer=%s] teleoperation failed", offer["id"])
     finally:
-        _stop_arms()
+        # Real arms move only on OpenArm Cell.
+        if offer["runtime"] == "OpenArm Cell":
+            _stop_arms()
 
 
 def _next_offer():

@@ -75,3 +75,26 @@ def test_next_offer_returns_none(monkeypatch):
     )
 
     assert runner._next_offer() is None
+
+
+def _fake_teleoperation(monkeypatch):
+    stopped_arms = []
+    monkeypatch.setattr(runner, "_stop_arms", lambda: stopped_arms.append(True))
+    monkeypatch.setattr(
+        runner.teleoperator, "teleoperate", lambda offer, send_answer: True
+    )
+    return stopped_arms
+
+
+def test_run_teleoperation_stops_arms(monkeypatch):
+    """run_teleoperation() stops the arms for an OpenArm Cell session."""
+    stopped_arms = _fake_teleoperation(monkeypatch)
+    runner.run_teleoperation({"id": 1, "runtime": "OpenArm Cell"})
+    assert stopped_arms == [True]
+
+
+def test_run_teleoperation_mujoco(monkeypatch):
+    """run_teleoperation() doesn't stop the arms for a MuJoCo session."""
+    stopped_arms = _fake_teleoperation(monkeypatch)
+    runner.run_teleoperation({"id": 1, "runtime": "MuJoCo"})
+    assert stopped_arms == []
