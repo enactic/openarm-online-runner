@@ -14,7 +14,6 @@
 
 """Teleoperate the cell from a Web browser over WebRTC."""
 
-import os
 import socket
 import subprocess
 
@@ -45,20 +44,24 @@ def teleoperate(offer, send_answer):
     or TELEOPERATE_TIMEOUT passes.
     """
     offer_id = offer["id"]
+    task_id = offer["task_id"]
     timeout = settings.TELEOPERATE_TIMEOUT
     # dora stops the dataflow by itself after stop_after seconds, so
     # hitting wait_timeout means that dora failed to do so.
     stop_after = timeout + dataflow.START_WAIT
     wait_timeout = stop_after + dataflow.STOP_WAIT
     with socket.create_server(("127.0.0.1", 0)) as listener:
-        env = os.environ.copy() | {
+        print(settings.teleoperation_dataflow_env_file(task_id))
+        env = dataflow.base_env(settings.teleoperation_dataflow_env_file(task_id)) | {
             "OFFER": offer["sdp"],
             "ANSWER_HOST": "127.0.0.1",
             "ANSWER_PORT": str(listener.getsockname()[1]),
             "TIMEOUT": str(timeout),
         }
         try:
-            proc = dataflow.start(settings.TELEOPERATION_DATAFLOW_FILE, env, stop_after)
+            proc = dataflow.start(
+                settings.teleoperation_dataflow_file(task_id), env, stop_after
+            )
         except (OSError, subprocess.SubprocessError):
             logger.exception("[offer=%s] failed to run dora", offer_id)
             return False

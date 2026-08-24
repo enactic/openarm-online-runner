@@ -68,8 +68,9 @@ UV_PROJECT_ENVIRONMENT=.venv-runner uv run openarm-online-runner
 
 Besides evaluation jobs, the runner polls the OpenArm Online API for
 WebRTC offers queued by Web browsers and serves each one with the
-dataflow configured by `TELEOPERATION_DATAFLOW_FILE` (default:
-`dataflow-teleoperation.yaml`).
+dataflow configured by `DEFAULT_TELEOPERATION_DATAFLOW_FILE` (default:
+`dataflow-teleoperation.yaml`) or the offered task's
+`TELEOPERATION_DATAFLOW_FILE_${TASK_ID}`, if any.
 
 The dataflow must contain a
 [`dora-openarm-keyboard`](https://github.com/enactic/dora-openarm-keyboard)
