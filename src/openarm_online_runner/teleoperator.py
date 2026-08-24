@@ -53,13 +53,12 @@ def teleoperate(offer, send_answer):
             "ANSWER_PORT": str(listener.getsockname()[1]),
             "TIMEOUT": str(timeout),
         }
-        proc = None
         try:
-            try:
-                proc = dataflow.start(settings.TELEOPERATION_DATAFLOW_FILE, env)
-            except (OSError, subprocess.SubprocessError):
-                logger.exception("[offer=%s] failed to run dora", offer_id)
-                return False
+            proc = dataflow.start(settings.TELEOPERATION_DATAFLOW_FILE, env)
+        except (OSError, subprocess.SubprocessError):
+            logger.exception("[offer=%s] failed to run dora", offer_id)
+            return False
+        try:
             try:
                 answer = _receive_answer(listener, dataflow.OVERHEAD_WAIT)
             except TimeoutError:
