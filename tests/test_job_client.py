@@ -22,7 +22,7 @@ from openarm_online_runner import job_client
 from openarm_online_runner.config import settings
 
 API_URL = settings.OPENARM_ONLINE_API_URL
-TASK_ID = settings.OPENARM_ONLINE_TASK_ID
+TASK_ID = settings.OPENARM_ONLINE_TASK_IDS[0]
 
 
 @responses.activate
@@ -37,7 +37,7 @@ def test_fetch_next_returns_job():
         responses.POST, f"{API_URL}/api/v1/tasks/{TASK_ID}/jobs/claim", json=job
     )
 
-    assert job_client.fetch_next() == job
+    assert job_client.fetch_next(TASK_ID) == job
 
 
 @responses.activate
@@ -50,7 +50,7 @@ def test_fetch_next_returns_none():
         content_type="application/json",
     )
 
-    assert job_client.fetch_next() is None
+    assert job_client.fetch_next(TASK_ID) is None
 
 
 @responses.activate

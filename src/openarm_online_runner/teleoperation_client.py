@@ -24,11 +24,10 @@ HEADERS = {
 }
 
 
-def fetch_pending_offers():
+def fetch_pending_offers(task_id):
     """Fetch unanswered WebRTC offers queued for the task, oldest first."""
     url = (
-        f"{settings.OPENARM_ONLINE_API_URL}"
-        f"/api/v1/tasks/{settings.OPENARM_ONLINE_TASK_ID}/teleoperation/offers"
+        f"{settings.OPENARM_ONLINE_API_URL}/api/v1/tasks/{task_id}/teleoperation/offers"
     )
     response = requests.get(url, headers=HEADERS, timeout=API_TIMEOUT)
     response.raise_for_status()

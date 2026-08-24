@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 
 os.environ.setdefault("OPENARM_ONLINE_API_KEY", "test-api-key")
-os.environ.setdefault("OPENARM_ONLINE_TASK_ID", "1")
+os.environ.setdefault("OPENARM_ONLINE_TASK_IDS", "1")
 
 TESTS_DIR = Path(__file__).parent
 

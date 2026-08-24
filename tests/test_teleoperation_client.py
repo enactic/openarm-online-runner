@@ -22,7 +22,7 @@ from openarm_online_runner import teleoperation_client
 from openarm_online_runner.config import settings
 
 API_URL = settings.OPENARM_ONLINE_API_URL
-TASK_ID = settings.OPENARM_ONLINE_TASK_ID
+TASK_ID = settings.OPENARM_ONLINE_TASK_IDS[0]
 
 
 @responses.activate
@@ -38,7 +38,7 @@ def test_fetch_pending_offers_returns_offers():
         json=offers,
     )
 
-    assert teleoperation_client.fetch_pending_offers() == offers
+    assert teleoperation_client.fetch_pending_offers(TASK_ID) == offers
 
 
 @responses.activate
@@ -50,7 +50,7 @@ def test_fetch_pending_offers_returns_empty():
         json=[],
     )
 
-    assert teleoperation_client.fetch_pending_offers() == []
+    assert teleoperation_client.fetch_pending_offers(TASK_ID) == []
 
 
 @responses.activate
