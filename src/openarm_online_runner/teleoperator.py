@@ -46,6 +46,10 @@ def teleoperate(offer, send_answer):
     """
     offer_id = offer["id"]
     timeout = settings.TELEOPERATE_TIMEOUT
+    # dora stops the dataflow by itself after stop_after seconds, so
+    # hitting wait_timeout means that dora failed to do so.
+    stop_after = timeout + dataflow.START_WAIT
+    wait_timeout = stop_after + dataflow.STOP_WAIT
     with socket.create_server(("127.0.0.1", 0)) as listener:
         env = os.environ.copy() | {
             "OFFER": offer["sdp"],
@@ -54,31 +58,30 @@ def teleoperate(offer, send_answer):
             "TIMEOUT": str(timeout),
         }
         try:
-            proc = dataflow.start(settings.TELEOPERATION_DATAFLOW_FILE, env)
+            proc = dataflow.start(settings.TELEOPERATION_DATAFLOW_FILE, env, stop_after)
         except (OSError, subprocess.SubprocessError):
             logger.exception("[offer=%s] failed to run dora", offer_id)
             return False
         try:
             try:
-                answer = _receive_answer(listener, dataflow.OVERHEAD_WAIT)
+                answer = _receive_answer(listener, dataflow.START_WAIT)
             except TimeoutError:
                 logger.warning(
                     "[offer=%s] no answer SDP within %ds",
                     offer_id,
-                    dataflow.OVERHEAD_WAIT,
+                    dataflow.START_WAIT,
                 )
                 return False
             send_answer(answer)
             try:
-                returncode = proc.wait(timeout=timeout + dataflow.OVERHEAD_WAIT)
+                returncode = proc.wait(timeout=wait_timeout)
             except subprocess.TimeoutExpired:
                 logger.warning(
-                    "[offer=%s] teleoperation timed out after %ds "
-                    "(timeout=%ds + overhead=%ds)",
+                    "[offer=%s] dora didn't stop the dataflow by itself "
+                    "after %ds (stop_after=%ds)",
                     offer_id,
-                    timeout + dataflow.OVERHEAD_WAIT,
-                    timeout,
-                    dataflow.OVERHEAD_WAIT,
+                    wait_timeout,
+                    stop_after,
                 )
                 return False
         finally:

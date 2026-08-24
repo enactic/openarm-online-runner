@@ -55,9 +55,10 @@ def _fake_dataflow(monkeypatch, script):
     """Replace dataflow.start with one running the fake node script."""
     started = {}
 
-    def start(dataflow_file, env):
+    def start(dataflow_file, env, stop_after):
         started["dataflow_file"] = dataflow_file
         started["env"] = env
+        started["stop_after"] = stop_after
         return subprocess.Popen(
             [sys.executable, "-c", script], env=env, start_new_session=True
         )
@@ -77,12 +78,13 @@ def test_teleoperate(monkeypatch):
     assert started["dataflow_file"] == settings.TELEOPERATION_DATAFLOW_FILE
     assert started["env"]["OFFER"] == "offer-sdp"
     assert started["env"]["TIMEOUT"] == str(settings.TELEOPERATE_TIMEOUT)
+    assert started["stop_after"] == settings.TELEOPERATE_TIMEOUT + dataflow.START_WAIT
 
 
 def test_teleoperate_start_fails(monkeypatch):
     """teleoperate() fails without calling send_answer when dora cannot start."""
 
-    def start(dataflow_file, env):
+    def start(dataflow_file, env, stop_after):
         raise OSError("dora not found")
 
     monkeypatch.setattr(dataflow, "start", start)
@@ -103,7 +105,7 @@ def test_teleoperate_dataflow_fails(monkeypatch):
 
 def test_teleoperate_no_answer(monkeypatch):
     """teleoperate() fails without calling send_answer when no answer arrives."""
-    monkeypatch.setattr(dataflow, "OVERHEAD_WAIT", 1)
+    monkeypatch.setattr(dataflow, "START_WAIT", 1)
     _fake_dataflow(monkeypatch, NO_ANSWER_SCRIPT)
 
     answers = []
@@ -113,7 +115,8 @@ def test_teleoperate_no_answer(monkeypatch):
 
 def test_teleoperate_session_timeout(monkeypatch):
     """teleoperate() fails when the dataflow outlives the session timeout."""
-    monkeypatch.setattr(dataflow, "OVERHEAD_WAIT", 1)
+    monkeypatch.setattr(dataflow, "START_WAIT", 1)
+    monkeypatch.setattr(dataflow, "STOP_WAIT", 1)
     monkeypatch.setattr(settings, "TELEOPERATE_TIMEOUT", 1)
     _fake_dataflow(monkeypatch, ANSWER_THEN_HANG_SCRIPT)
 
