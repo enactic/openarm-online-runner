@@ -14,6 +14,7 @@
 
 **/*.pyc
 **/.pytest_cache/
+**/MUJOCO_LOG.TXT
 **/__pycache__/
 /.env
 /.env.*

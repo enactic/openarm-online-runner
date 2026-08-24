@@ -1,0 +1,82 @@
+# Copyright 2026 Enactic, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Keyboard teleoperation from a web browser, with no VR headset and no real
+# OpenArm: the keyboard node serves a page (http://127.0.0.1:8080/ by default)
+# that captures keys over a WebRTC data channel and shows the MuJoCo camera as
+# WebRTC video. keyboard -> end-effector pose targets -> IK -> joint angles ->
+# MuJoCo, and MuJoCo's camera back to the browser. The arms move only while a
+# motion key is held and the page has focus.
+
+nodes:
+  - id: webxr # browser keys → EE pose targets, camera → browser
+    build: pip install dora-openarm-webxr
+    path: dora-openarm-webxr
+    inputs:
+      # Keeps the view on the newest frame. Without it, frames the VR
+      # device cannot keep up with queue and latency grows.
+      camera_head_right:
+        source: mujoco/camera_head_right
+        queue_size: 1
+      # Only used by the stereo view. Swap the two sources if your
+      # openarm_mujoco build still has the head cameras flipped.
+      camera_head_left:
+        source: mujoco/camera_head_left
+        queue_size: 1
+    outputs:
+      - pose_right
+      - trigger_right
+      - pose_left
+      - trigger_left
+      - grip_right
+      - grip_left
+      - joystick_x_right
+      - joystick_y_right
+      - joystick_x_left
+      - joystick_y_left
+      - button_a
+      - button_b
+      - button_x
+      - button_y
+      - status
+      - vr_receive_times
+      - pose_reference
+
+  - id: ik # differential IK: EE poses → joint angles
+    build: pip install dora-openarm-kinematics
+    path: dora-openarm-ik
+    inputs:
+      # The solver runs on each target, not on the tick.
+      target_right: webxr/pose_right
+      target_left: webxr/pose_left
+    outputs:
+      - position_right
+      - position_left
+      - status
+
+  - id: mujoco # MuJoCo scene, rendered offscreen for the browser
+    build: pip install dora-openarm-mujoco
+    path: dora-openarm-mujoco
+    args: "--enable-collision --ctrl --render"
+    inputs:
+      position_right: ik/position_right
+      position_left: ik/position_left
+      pose_right: webxr/pose_right
+      pose_left: webxr/pose_left
+      joystick_y: webxr/joystick_y_left
+      button_x: webxr/button_x
+    outputs:
+      - status
+      - camera_head_right
+      - camera_head_left

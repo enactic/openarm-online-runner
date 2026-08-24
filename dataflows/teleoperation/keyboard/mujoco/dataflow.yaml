@@ -1,0 +1,58 @@
+# Copyright 2026 Enactic, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Keyboard teleoperation from a web browser, with no VR headset and no real
+# OpenArm: the keyboard node serves a page (http://127.0.0.1:8080/ by default)
+# that captures keys over a WebRTC data channel and shows the MuJoCo camera as
+# WebRTC video. keyboard -> end-effector pose targets -> IK -> joint angles ->
+# MuJoCo, and MuJoCo's camera back to the browser. The arms move only while a
+# motion key is held and the page has focus.
+
+nodes:
+  - id: keyboard # browser keys → EE pose targets, camera → browser
+    build: pip install dora-openarm-keyboard
+    path: dora-openarm-keyboard
+    inputs:
+      # Any camera_* output of the MuJoCo works here; ceiling gives the best
+      # overview of both arms.
+      image: mujoco/camera_ceiling
+    outputs:
+      - pose_right
+      - pose_left
+      - status
+
+  - id: ik # differential IK: EE poses → joint angles
+    build: pip install dora-openarm-kinematics
+    path: dora-openarm-ik
+    inputs:
+      # The solver runs on each target, not on the tick.
+      target_right: keyboard/pose_right
+      target_left: keyboard/pose_left
+    outputs:
+      - position_right
+      - position_left
+      - status
+
+  - id: mujoco # MuJoCo scene, rendered offscreen for the browser
+    build: pip install dora-openarm-mujoco
+    path: dora-openarm-mujoco
+    args: "--enable-collision --ctrl --render"
+    inputs:
+      position_right: ik/position_right
+      position_left: ik/position_left
+      pose_right: keyboard/pose_right
+      pose_left: keyboard/pose_left
+    outputs:
+      - status
+      - camera_ceiling
