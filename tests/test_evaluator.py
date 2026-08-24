@@ -16,6 +16,7 @@
 
 from pathlib import Path
 
+from openarm_online_runner import dataflow
 from openarm_online_runner.config import settings
 from openarm_online_runner.evaluator import EVALUATE_PHASE, evaluate, succeeded
 
@@ -31,6 +32,36 @@ def test_run(capfd, tmp_path, monkeypatch):
 
     job = {"job_id": 1, "task_id": 1, "docker_tag": "dummy"}
     assert evaluate(job)
+
+
+def test_run_dataflow_env_file(tmp_path, monkeypatch):
+    """evaluate() merges the task's .env file into the dataflow environment."""
+    env_file = tmp_path / "task.env"
+    env_file.write_text("""\
+DATAFLOW_ENV_FILE_ONLY=from-env-file
+OVERRIDDEN=from-env-file
+""")
+    monkeypatch.setenv("OVERRIDDEN", "from-environment")
+    monkeypatch.setattr(settings, "_dataflow_env_files", {1: str(env_file)})
+
+    class Proc:
+        def wait(self, timeout):
+            return 0
+
+    started = {}
+
+    def start(dataflow_file, env, stop_after):
+        started["env"] = env
+        return Proc()
+
+    monkeypatch.setattr(dataflow, "start", start)
+    monkeypatch.setattr(dataflow, "shutdown", lambda proc: None)
+
+    job = {"job_id": 1, "task_id": 1, "docker_tag": "dummy"}
+    assert evaluate(job)
+    assert started["env"]["DATAFLOW_ENV_FILE_ONLY"] == "from-env-file"
+    # The task's .env file wins over the inherited environment.
+    assert started["env"]["OVERRIDDEN"] == "from-env-file"
 
 
 def test_succeeded_true(monkeypatch):

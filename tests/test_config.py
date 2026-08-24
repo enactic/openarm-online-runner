@@ -69,6 +69,14 @@ DATAFLOW_FILE_3=dataflow-task3.yaml
     assert settings.dataflow_file(3) == "dataflow-task3.yaml"
 
 
+def test_dataflow_env_file_per_task(monkeypatch):
+    """dataflow_env_file() returns DATAFLOW_ENV_FILE_${TASK_ID}, if any."""
+    monkeypatch.setenv("DATAFLOW_ENV_FILE_2", "dataflows/task-2/.env")
+    settings = Settings()
+    assert settings.dataflow_env_file(2) == "dataflows/task-2/.env"
+    assert settings.dataflow_env_file(1) is None
+
+
 def _datetime_mock(monkeypatch, hour, minute):
     datetime_mock = MagicMock(wraps=datetime)
     datetime_mock.now.return_value = datetime(2026, 1, 1, hour, minute)
