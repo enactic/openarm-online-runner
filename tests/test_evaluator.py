@@ -24,10 +24,12 @@ TESTS_DIR = Path(__file__).parent
 
 def test_run(capfd, tmp_path, monkeypatch):
     """evaluate() completes successfully."""
-    monkeypatch.setattr(settings, "DATAFLOW_FILE", str(TESTS_DIR / "dataflow.yaml"))
+    monkeypatch.setattr(
+        settings, "DEFAULT_DATAFLOW_FILE", str(TESTS_DIR / "dataflow.yaml")
+    )
     monkeypatch.setattr(settings, "RECORDER_BASE_DIRECTORY", str(tmp_path))
 
-    job = {"job_id": 1, "docker_tag": "dummy"}
+    job = {"job_id": 1, "task_id": 1, "docker_tag": "dummy"}
     assert evaluate(job)
 
 

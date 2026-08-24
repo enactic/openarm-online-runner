@@ -46,6 +46,29 @@ def test_env_file(tmp_path, monkeypatch):
     assert Settings().POLL_INTERVAL == 42
 
 
+def test_dataflow_file_per_task(monkeypatch):
+    """dataflow_file() prefers DATAFLOW_FILE_${TASK_ID} for the task."""
+    monkeypatch.setenv("DATAFLOW_FILE_2", "dataflow-task2.yaml")
+    settings = Settings()
+    assert settings.dataflow_file(2) == "dataflow-task2.yaml"
+    assert settings.dataflow_file(1) == "dataflow.yaml"
+
+
+def test_dataflow_file_per_task_env_file(tmp_path, monkeypatch):
+    """dataflow_file() reads DATAFLOW_FILE_${TASK_ID} from the .env file too."""
+    env_file = tmp_path / "custom.env"
+    env_file.write_text("""\
+DATAFLOW_FILE_2=dataflow-env-file.yaml
+DATAFLOW_FILE_3=dataflow-task3.yaml
+""")
+    monkeypatch.setenv("ENV_FILE", str(env_file))
+    monkeypatch.setenv("DATAFLOW_FILE_2", "dataflow-environment.yaml")
+    settings = Settings()
+    # A real environment variable wins over the .env file.
+    assert settings.dataflow_file(2) == "dataflow-environment.yaml"
+    assert settings.dataflow_file(3) == "dataflow-task3.yaml"
+
+
 def _datetime_mock(monkeypatch, hour, minute):
     datetime_mock = MagicMock(wraps=datetime)
     datetime_mock.now.return_value = datetime(2026, 1, 1, hour, minute)
