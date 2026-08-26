@@ -61,7 +61,10 @@ nodes:
   - id: follower-right
     build: pip install dora-openarm
     path: dora-openarm
-    args: "--side right --start-on-startup"
+    # We need "--config openarm_pedestal" when we calibrate by
+    # openarm-can-calibration-in-cell. We don't need it when we use
+    # jig for calibration.
+    args: "--side right --start-on-startup --config openarm_pedestal"
     inputs:
       move_position: ik/position_right
     outputs:
@@ -70,7 +73,10 @@ nodes:
   - id: follower-left
     build: pip install dora-openarm
     path: dora-openarm
-    args: "--side left --start-on-startup"
+    # We need "--config openarm_pedestal" when we calibrate by
+    # openarm-can-calibration-in-cell. We don't need it when we use
+    # jig for calibration.
+    args: "--side left --start-on-startup --config openarm_pedestal"
     inputs:
       move_position: ik/position_left
     outputs:
