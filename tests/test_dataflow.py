@@ -70,6 +70,25 @@ def test_shutdown_kills_orphaned_workers():
     assert not _group_exists(proc.pid)
 
 
+def test_remove_logs(tmp_path):
+    """remove_logs() removes the out/ directory next to the dataflow file."""
+    dataflow_file = tmp_path / "dataflow.yaml"
+    out = tmp_path / "out"
+    run_directory = out / "01a01ceb-c97f-70e9-91e5-853944997bf2"
+    run_directory.mkdir(parents=True)
+    (run_directory / "log_ik.txt").write_text("log")
+    (out / "dataflow.dora-session.yaml").write_text("session")
+
+    dataflow.remove_logs(dataflow_file)
+
+    assert not out.exists()
+
+
+def test_remove_logs_without_out_directory(tmp_path):
+    """remove_logs() does nothing without an out/ directory."""
+    dataflow.remove_logs(tmp_path / "dataflow.yaml")
+
+
 def test_shutdown_after_exit():
     """shutdown() is a no-op when everything already exited."""
     proc = subprocess.Popen(["true"], start_new_session=True)
