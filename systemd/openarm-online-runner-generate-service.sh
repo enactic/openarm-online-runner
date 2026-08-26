@@ -26,7 +26,7 @@ Options:
   --user USER              process owner (default: current user)
   --working-directory DIR  runner checkout (default: repo root)
   --uv PATH                uv executable (default: uv in PATH)
-  --uv-environment DIR     UV_PROJECT_ENVIRONMENT (default: .venv-runner)
+  --uv-environment DIR     UV_PROJECT_ENVIRONMENT (default: .venv)
   --help                   show this help and exit
 
 Example:
@@ -40,7 +40,7 @@ USAGE
 user_name="$(id -un)"
 working_directory="$(cd "$(dirname "$0")/.." && pwd)"
 uv=""
-uv_environment=".venv-runner"
+uv_environment=".venv"
 
 options="$(
   getopt \
