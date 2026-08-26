@@ -75,6 +75,17 @@ class Settings(BaseSettings):
             _TELEOPERATION_DATAFLOW_ENV_FILE_PATTERN, env
         )
 
+    LOG_LEVEL: str = "DEBUG"
+
+    @field_validator("LOG_LEVEL")
+    @classmethod
+    def _validate_log_level(cls, value):
+        """Accept standard logging level names, case-insensitively."""
+        level = value.upper()
+        if level not in logging.getLevelNamesMapping():
+            raise ValueError(f"invalid log level: {value}")
+        return level
+
     POLL_INTERVAL: int = 3
     EVALUATE_TIMEOUT: int = Field(default=180, gt=0)
     RESET_TIMEOUT: int = Field(default=120, gt=0)
@@ -163,7 +174,7 @@ settings = Settings()
 # --------------------------------------------------
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=settings.LOG_LEVEL,
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
 

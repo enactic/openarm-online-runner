@@ -37,6 +37,19 @@ def test_task_ids_empty(monkeypatch):
         Settings()
 
 
+def test_log_level_case_insensitive(monkeypatch):
+    """LOG_LEVEL is normalized to upper case."""
+    monkeypatch.setenv("LOG_LEVEL", "info")
+    assert Settings().LOG_LEVEL == "INFO"
+
+
+def test_log_level_invalid(monkeypatch):
+    """LOG_LEVEL rejects unknown level names."""
+    monkeypatch.setenv("LOG_LEVEL", "noisy")
+    with pytest.raises(ValidationError):
+        Settings()
+
+
 def test_env_file(tmp_path, monkeypatch):
     """Settings reads the .env file named by ENV_FILE."""
     env_file = tmp_path / "custom.env"
