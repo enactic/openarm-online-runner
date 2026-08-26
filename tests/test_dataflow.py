@@ -16,8 +16,15 @@
 
 import os
 import subprocess
+import sys
 
 from openarm_online_runner import dataflow
+
+# Stand-ins for dora and a node worker. Plain Python processes so that
+# they exit on shutdown()'s first SIGINT; `bash -c "... &"` children
+# would start with SIGINT ignored (POSIX) and wait for SIGKILL.
+WORKER_SCRIPT = "import time; time.sleep(60)"
+SPAWN_WORKER_SCRIPT = f"import subprocess, sys; subprocess.Popen([sys.executable, '-c', {WORKER_SCRIPT!r}])"
 
 
 def _group_exists(pgid):
@@ -44,7 +51,10 @@ def test_start_stop_after(monkeypatch):
 
 def test_shutdown_kills_process_group():
     """shutdown() kills the running leader and its workers."""
-    proc = subprocess.Popen(["bash", "-c", "sleep 60 & wait"], start_new_session=True)
+    proc = subprocess.Popen(
+        [sys.executable, "-c", f"{SPAWN_WORKER_SCRIPT}; {WORKER_SCRIPT}"],
+        start_new_session=True,
+    )
     dataflow.shutdown(proc)
     assert proc.poll() is not None
     assert not _group_exists(proc.pid)
@@ -52,7 +62,9 @@ def test_shutdown_kills_process_group():
 
 def test_shutdown_kills_orphaned_workers():
     """shutdown() kills workers left behind after the leader exited."""
-    proc = subprocess.Popen(["bash", "-c", "sleep 60 & disown"], start_new_session=True)
+    proc = subprocess.Popen(
+        [sys.executable, "-c", SPAWN_WORKER_SCRIPT], start_new_session=True
+    )
     proc.wait()
     dataflow.shutdown(proc)
     assert not _group_exists(proc.pid)
