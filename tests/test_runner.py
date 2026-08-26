@@ -14,6 +14,10 @@
 
 """Tests for runner."""
 
+import signal
+
+import pytest
+
 from openarm_online_runner import runner
 from openarm_online_runner.config import settings
 
@@ -75,6 +79,39 @@ def test_next_offer_returns_none(monkeypatch):
     )
 
     assert runner._next_offer() is None
+
+
+def test_terminate():
+    """_terminate() exits cleanly, leaving further SIGTERMs fatal."""
+    original = signal.getsignal(signal.SIGTERM)
+    try:
+        with pytest.raises(SystemExit) as excinfo:
+            runner._terminate(signal.SIGTERM, None)
+        assert excinfo.value.code is None
+        assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
+    finally:
+        signal.signal(signal.SIGTERM, original)
+
+
+@pytest.mark.parametrize("interrupt", [KeyboardInterrupt, SystemExit])
+def test_run_job_interrupted(monkeypatch, interrupt):
+    """run_job() reports the job as failed when interrupted."""
+    failed = []
+    monkeypatch.setattr(
+        runner.job_client,
+        "fail_job",
+        lambda job_id, reason: failed.append((job_id, reason)),
+    )
+
+    def evaluate(job):
+        raise interrupt
+
+    monkeypatch.setattr(runner.evaluator, "evaluate", evaluate)
+
+    job = {"job_id": 5, "runtime": "MuJoCo"}
+    with pytest.raises(interrupt):
+        runner.run_job(job)
+    assert failed == [(5, "runner terminated")]
 
 
 def _fake_teleoperation(monkeypatch):

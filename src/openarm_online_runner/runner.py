@@ -14,6 +14,8 @@
 
 """Evaluates queued jobs and teleoperation offers in an OpenArm Cell as a daemon."""
 
+import signal
+import sys
 import time
 import shutil
 
@@ -96,6 +98,10 @@ def run_job(job):
         s3_key = job_client.upload_rrd(rrd_path)
         job_client.complete_job(job["job_id"], success, s3_key)
         logger.debug("[job=%s] completed", job["job_id"])
+    except (KeyboardInterrupt, SystemExit):
+        logger.warning("[job=%s] interrupted", job["job_id"])
+        job_client.fail_job(job["job_id"], "runner terminated")
+        raise
     except Exception as err:
         logger.exception("[job=%s] failed", job["job_id"])
         job_client.fail_job(job["job_id"], str(err))
@@ -139,8 +145,17 @@ def _next_job():
     return None
 
 
+def _terminate(signum, frame):
+    """Raise SystemExit so that in-flight finally blocks run."""
+    # A second SIGTERM aborts the cleanup and kills us the default
+    # way, so a stuck cleanup can't block termination forever.
+    signal.signal(signum, signal.SIG_DFL)
+    sys.exit()
+
+
 def main():
     """Poll for teleoperation offers and jobs and execute them."""
+    signal.signal(signal.SIGTERM, _terminate)
     logger.info("started (poll_interval=%ds)", settings.POLL_INTERVAL)
     paused = False
     while True:
