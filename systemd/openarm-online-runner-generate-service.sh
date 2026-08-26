@@ -100,6 +100,10 @@ User=${user_name}
 WorkingDirectory=${working_directory}
 Environment=UV_PROJECT_ENVIRONMENT=${uv_environment}
 ExecStart=${uv} run openarm-online-runner
+# Send SIGTERM only to the runner itself: it shuts the dataflow down
+# gracefully. SIGTERM to the whole control group would kill dora
+# without letting it stop its nodes.
+KillMode=mixed
 Restart=always
 RestartSec=5
 
