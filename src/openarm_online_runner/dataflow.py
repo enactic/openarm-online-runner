@@ -94,15 +94,25 @@ def _wait_group(proc, pgid, timeout):
 
 
 def shutdown(proc):
-    """Kill the dataflow process group.
+    """Stop the dataflow via dora, killing dora as the last resort.
 
-    start() runs dora in its own session, so dora and all of its node
-    workers share the process group whose ID is dora's PID. Signaling
-    the group reaches node workers even after dora itself has exited,
-    without touching unrelated processes.
+    start() runs dora in its own session, so signaling the process
+    group whose ID is dora's PID doesn't touch unrelated processes.
+
+    dora treats SIGINT like Ctrl-C: the first one stops the dataflow
+    gracefully and the second one exits early but still reaps the
+    nodes. We don't use SIGTERM because dora 0.5.0 doesn't handle it:
+    it just dies, orphaning its nodes, which are process group leaders
+    of their own. dora 1.0.0 should handle SIGTERM like Ctrl-C in
+    `dora run` (dora-rs/dora#2949), but SIGINT works with both.
+    SIGKILL orphans the nodes, so it's the last resort.
     """
     pgid = proc.pid
-    for sig, timeout in [(signal.SIGTERM, 5), (signal.SIGKILL, 3)]:
+    for sig, timeout in [
+        (signal.SIGINT, STOP_WAIT),
+        (signal.SIGINT, 5),
+        (signal.SIGKILL, 3),
+    ]:
         if not _kill_group(pgid, sig):
             return
         logger.info("sent %s to dataflow process group (pgid=%d)", sig.name, pgid)
