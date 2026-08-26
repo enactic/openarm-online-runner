@@ -43,6 +43,10 @@ OVERRIDDEN=from-env-file
 """)
     monkeypatch.setenv("OVERRIDDEN", "from-environment")
     monkeypatch.setattr(settings, "_dataflow_env_files", {1: str(env_file)})
+    # Keep evaluate()'s remove_logs() away from the repository's out/.
+    monkeypatch.setattr(
+        settings, "DEFAULT_DATAFLOW_FILE", str(tmp_path / "dataflow.yaml")
+    )
 
     class Proc:
         def wait(self, timeout):

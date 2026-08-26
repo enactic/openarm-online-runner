@@ -17,10 +17,28 @@
 import subprocess
 import sys
 
+import pytest
+
 from openarm_online_runner import dataflow, teleoperator
 from openarm_online_runner.config import settings
 
 OFFER = {"id": 1, "task_id": 1, "sdp": "offer-sdp"}
+
+
+@pytest.fixture(autouse=True)
+def teleoperation_dataflow_file(tmp_path, monkeypatch):
+    """Point the dataflow file into tmp_path.
+
+    teleoperate() removes the out/ directory next to the dataflow
+    file; with the default dataflow file it would remove the
+    repository's out/.
+    """
+    monkeypatch.setattr(
+        settings,
+        "DEFAULT_TELEOPERATION_DATAFLOW_FILE",
+        str(tmp_path / "dataflow-teleoperation.yaml"),
+    )
+
 
 # Stand-ins for the dataflow's keyboard node in WebRTC-only mode: connect
 # to ANSWER_HOST/ANSWER_PORT and write the bare answer SDP.

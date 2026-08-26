@@ -15,13 +15,16 @@
 """Run dora dataflows as supervised subprocesses."""
 
 import os
+import shutil
 import signal
 import subprocess
 import time
+from pathlib import Path
 
 from dotenv import dotenv_values
 
 from .config import logger
+
 
 # Wait time for all nodes in the dataflow to start. The
 # dora-openarm-docker-policy-server node can be especially slow to
@@ -91,6 +94,18 @@ def _wait_group(proc, pgid, timeout):
         if time.monotonic() >= deadline:
             return False
         time.sleep(0.1)
+
+
+def remove_logs(dataflow_file):
+    """Remove the out/ directory `dora run` leaves next to the dataflow file."""
+    out_directory = Path(dataflow_file).parent / "out"
+    if not out_directory.exists():
+        return
+    logger.debug("removing dataflow logs: %s", out_directory)
+    try:
+        shutil.rmtree(out_directory)
+    except OSError:
+        logger.exception("failed to remove dataflow logs: %s", out_directory)
 
 
 def shutdown(proc):

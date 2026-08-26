@@ -45,13 +45,13 @@ def teleoperate(offer, send_answer):
     """
     offer_id = offer["id"]
     task_id = offer["task_id"]
+    dataflow_file = settings.teleoperation_dataflow_file(task_id)
     timeout = settings.TELEOPERATE_TIMEOUT
     # dora stops the dataflow by itself after stop_after seconds, so
     # hitting wait_timeout means that dora failed to do so.
     stop_after = timeout + dataflow.START_WAIT
     wait_timeout = stop_after + dataflow.STOP_WAIT
     with socket.create_server(("127.0.0.1", 0)) as listener:
-        print(settings.teleoperation_dataflow_env_file(task_id))
         env = dataflow.base_env(settings.teleoperation_dataflow_env_file(task_id)) | {
             "OFFER": offer["sdp"],
             "ANSWER_HOST": "127.0.0.1",
@@ -59,9 +59,7 @@ def teleoperate(offer, send_answer):
             "TIMEOUT": str(timeout),
         }
         try:
-            proc = dataflow.start(
-                settings.teleoperation_dataflow_file(task_id), env, stop_after
-            )
+            proc = dataflow.start(dataflow_file, env, stop_after)
         except (OSError, subprocess.SubprocessError):
             logger.exception("[offer=%s] failed to run dora", offer_id)
             return False
@@ -89,6 +87,7 @@ def teleoperate(offer, send_answer):
                 return False
         finally:
             dataflow.shutdown(proc)
+            dataflow.remove_logs(dataflow_file)
 
     logger.info(
         "[offer=%s] teleoperation finished: returncode=%d", offer_id, returncode

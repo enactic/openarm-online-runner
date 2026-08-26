@@ -62,6 +62,7 @@ def _run(phase, job, env, timeout):
         return False
     finally:
         dataflow.shutdown(proc)
+        dataflow.remove_logs(dataflow_file)
 
     logger.info("[job=%s] %s finished: returncode=%d", job["job_id"], phase, returncode)
     return returncode == 0
