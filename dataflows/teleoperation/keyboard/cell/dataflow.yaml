@@ -31,7 +31,7 @@ nodes:
       - tick
 
   - id: keyboard # browser keys → EE pose targets, camera → browser
-    build: pip install -e ..
+    build: pip install dora-openarm-keyboard
     path: dora-openarm-keyboard
     inputs:
       # Any camera_* output of the viewer works here; ceiling gives the best
