@@ -36,7 +36,7 @@ git clone https://github.com/enactic/openarm-online-runner.git
 
 ```bash
 cd openarm-online-runner
-UV_PROJECT_ENVIRONMENT=.venv-runner uv sync
+uv sync
 ```
 
 ### 5. Configure
@@ -55,13 +55,13 @@ its path.
 ### 6. Build the dataflow
 
 ```bash
-UV_PROJECT_ENVIRONMENT=.venv-runner uv run dora build dataflow.yaml --uv
+uv run dora build dataflow.yaml --uv
 ```
 
 ## Run
 
 ```bash
-UV_PROJECT_ENVIRONMENT=.venv-runner uv run openarm-online-runner
+uv run openarm-online-runner
 ```
 
 ## Teleoperation
@@ -85,7 +85,7 @@ environment variable) or after `TELEOPERATE_TIMEOUT` seconds.
 Build the teleoperation dataflow like the evaluation one:
 
 ```bash
-UV_PROJECT_ENVIRONMENT=.venv-runner uv run dora build dataflow-teleoperation.yaml --uv
+uv run dora build dataflow-teleoperation.yaml --uv
 ```
 
 ## Run as a systemd service
