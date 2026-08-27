@@ -25,7 +25,12 @@ HEADERS = {
 
 
 def fetch_pending_offers(task_id, kind):
-    """Fetch unanswered WebRTC offers of the kind queued for the task, oldest first."""
+    """Fetch unanswered WebRTC offers of the kind queued for the task.
+
+    Returns {"ice_servers": [...], "offers": [...]} with the offers
+    oldest first. The ICE servers may hold short-lived TURN
+    credentials minted by the server; peers must be built with them.
+    """
     url = (
         f"{settings.OPENARM_ONLINE_API_URL}"
         f"/api/v1/tasks/{task_id}/teleoperation/{kind}/offers"

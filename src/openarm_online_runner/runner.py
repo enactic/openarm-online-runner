@@ -108,13 +108,14 @@ def run_job(job):
         _cleanup_recording(job)
 
 
-def run_teleoperation(offer):
+def run_teleoperation(offer, ice_servers):
     """Execute a single teleoperation session."""
     logger.debug("[offer=%s] teleoperation started", offer["id"])
 
     try:
         teleoperator.teleoperate(
             offer,
+            ice_servers,
             lambda sdp: teleoperation_client.answer_offer(offer["id"], sdp),
         )
         logger.debug("[offer=%s] teleoperation ended", offer["id"])
@@ -130,15 +131,16 @@ def _next_offer():
     """Return the oldest servable pending teleoperation offer across all tasks.
 
     Only kinds with a teleoperation dataflow configured for the task
-    are polled; other kinds' offers stay pending.
+    are polled; other kinds' offers stay pending. Returns the offer
+    and the ICE servers to build the peer with, or None.
     """
     for task_id in settings.OPENARM_ONLINE_TASK_IDS:
         for kind in TELEOPERATION_KINDS:
             if settings.teleoperation_dataflow_file(kind, task_id) is None:
                 continue
-            offers = teleoperation_client.fetch_pending_offers(task_id, kind)
-            if offers:
-                return offers[0]
+            pending = teleoperation_client.fetch_pending_offers(task_id, kind)
+            if pending["offers"]:
+                return pending["offers"][0], pending["ice_servers"]
     return None
 
 
@@ -186,9 +188,10 @@ def main():
 
         # A browser user is waiting for a teleoperation session, so
         # offers take priority over queued jobs.
-        offer = _next_offer()
-        if offer is not None:
-            run_teleoperation(offer)
+        pending = _next_offer()
+        if pending is not None:
+            offer, ice_servers = pending
+            run_teleoperation(offer, ice_servers)
             continue
 
         job = _next_job()

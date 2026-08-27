@@ -61,15 +61,19 @@ def test_next_offer_polls_tasks_in_order(monkeypatch):
 
     def fetch_pending_offers(task_id, kind):
         polled.append((task_id, kind))
+        offers = []
         if task_id == 2:
-            return [{"id": 5, "kind": kind}, {"id": 6, "kind": kind}]
-        return []
+            offers = [{"id": 5, "kind": kind}, {"id": 6, "kind": kind}]
+        return {"ice_servers": [{"urls": ["stun:stun.example.com"]}], "offers": offers}
 
     monkeypatch.setattr(
         runner.teleoperation_client, "fetch_pending_offers", fetch_pending_offers
     )
 
-    assert runner._next_offer() == {"id": 5, "kind": "keyboard"}
+    assert runner._next_offer() == (
+        {"id": 5, "kind": "keyboard"},
+        [{"urls": ["stun:stun.example.com"]}],
+    )
     assert polled == [(1, "keyboard"), (2, "keyboard")]
 
 
@@ -83,13 +87,13 @@ def test_next_offer_skips_unconfigured_kind(monkeypatch):
 
     def fetch_pending_offers(task_id, kind):
         polled.append((task_id, kind))
-        return [{"id": 6, "kind": kind}]
+        return {"ice_servers": [], "offers": [{"id": 6, "kind": kind}]}
 
     monkeypatch.setattr(
         runner.teleoperation_client, "fetch_pending_offers", fetch_pending_offers
     )
 
-    assert runner._next_offer() == {"id": 6, "kind": "webxr"}
+    assert runner._next_offer() == ({"id": 6, "kind": "webxr"}, [])
     assert polled == [(1, "webxr")]
 
 
@@ -100,7 +104,9 @@ def test_next_offer_returns_none(monkeypatch):
         settings, "DEFAULT_KEYBOARD_TELEOPERATION_DATAFLOW_FILE", "dataflow.yaml"
     )
     monkeypatch.setattr(
-        runner.teleoperation_client, "fetch_pending_offers", lambda task_id, kind: []
+        runner.teleoperation_client,
+        "fetch_pending_offers",
+        lambda task_id, kind: {"ice_servers": [], "offers": []},
     )
 
     assert runner._next_offer() is None
@@ -143,7 +149,7 @@ def _fake_teleoperation(monkeypatch):
     stopped_arms = []
     monkeypatch.setattr(runner, "_stop_arms", lambda: stopped_arms.append(True))
     monkeypatch.setattr(
-        runner.teleoperator, "teleoperate", lambda offer, send_answer: True
+        runner.teleoperator, "teleoperate", lambda offer, ice_servers, send_answer: True
     )
     return stopped_arms
 
@@ -151,12 +157,12 @@ def _fake_teleoperation(monkeypatch):
 def test_run_teleoperation_stops_arms(monkeypatch):
     """run_teleoperation() stops the arms for an OpenArm Cell session."""
     stopped_arms = _fake_teleoperation(monkeypatch)
-    runner.run_teleoperation({"id": 1, "runtime": "OpenArm Cell"})
+    runner.run_teleoperation({"id": 1, "runtime": "OpenArm Cell"}, [])
     assert stopped_arms == [True]
 
 
 def test_run_teleoperation_mujoco(monkeypatch):
     """run_teleoperation() doesn't stop the arms for a MuJoCo session."""
     stopped_arms = _fake_teleoperation(monkeypatch)
-    runner.run_teleoperation({"id": 1, "runtime": "MuJoCo"})
+    runner.run_teleoperation({"id": 1, "runtime": "MuJoCo"}, [])
     assert stopped_arms == []
