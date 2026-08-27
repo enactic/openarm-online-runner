@@ -91,31 +91,37 @@ def test_dataflow_env_file_per_task(monkeypatch):
 
 
 def test_teleoperation_dataflow_file_per_task(monkeypatch):
-    """teleoperation_dataflow_file() prefers the task's file."""
+    """teleoperation_dataflow_file() prefers the task's file of the kind."""
     monkeypatch.setenv(
-        "TELEOPERATION_DATAFLOW_FILE_2", "dataflow-teleoperation-task2.yaml"
+        "KEYBOARD_TELEOPERATION_DATAFLOW_FILE_2",
+        "dataflow-keyboard-teleoperation-task2.yaml",
     )
     settings = Settings()
     assert (
-        settings.teleoperation_dataflow_file(2) == "dataflow-teleoperation-task2.yaml"
+        settings.teleoperation_dataflow_file("keyboard", 2)
+        == "dataflow-keyboard-teleoperation-task2.yaml"
     )
-    assert settings.teleoperation_dataflow_file(1) == "dataflow-teleoperation.yaml"
-    # TELEOPERATION_DATAFLOW_FILE_${TASK_ID} isn't confused with
-    # DATAFLOW_FILE_${TASK_ID}.
+    # No dataflow file means no teleoperation of the kind for the task.
+    assert settings.teleoperation_dataflow_file("keyboard", 1) is None
+    # KEYBOARD_TELEOPERATION_DATAFLOW_FILE_${TASK_ID} isn't confused
+    # with other kinds' files or DATAFLOW_FILE_${TASK_ID}.
+    assert settings.teleoperation_dataflow_file("webxr", 2) is None
     assert settings.dataflow_file(2) == "dataflow.yaml"
 
 
 def test_teleoperation_dataflow_env_file_per_task(monkeypatch):
     """teleoperation_dataflow_env_file() returns the task's .env file, if any."""
     monkeypatch.setenv(
-        "TELEOPERATION_DATAFLOW_ENV_FILE_2", "dataflows/task-2/.env-teleoperation"
+        "WEBXR_TELEOPERATION_DATAFLOW_ENV_FILE_2",
+        "dataflows/task-2/.env-webxr-teleoperation",
     )
     settings = Settings()
     assert (
-        settings.teleoperation_dataflow_env_file(2)
-        == "dataflows/task-2/.env-teleoperation"
+        settings.teleoperation_dataflow_env_file("webxr", 2)
+        == "dataflows/task-2/.env-webxr-teleoperation"
     )
-    assert settings.teleoperation_dataflow_env_file(1) is None
+    assert settings.teleoperation_dataflow_env_file("webxr", 1) is None
+    assert settings.teleoperation_dataflow_env_file("keyboard", 2) is None
     assert settings.dataflow_env_file(2) is None
 
 

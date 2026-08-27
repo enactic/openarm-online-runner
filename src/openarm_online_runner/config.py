@@ -26,10 +26,19 @@ from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 _DATAFLOW_FILE_PATTERN = re.compile(r"DATAFLOW_FILE_(\d+)")
 _DATAFLOW_ENV_FILE_PATTERN = re.compile(r"DATAFLOW_ENV_FILE_(\d+)")
-_TELEOPERATION_DATAFLOW_FILE_PATTERN = re.compile(r"TELEOPERATION_DATAFLOW_FILE_(\d+)")
-_TELEOPERATION_DATAFLOW_ENV_FILE_PATTERN = re.compile(
-    r"TELEOPERATION_DATAFLOW_ENV_FILE_(\d+)"
-)
+
+# The kinds of teleoperation clients. They must match the API server's
+# TeleoperationKind values reported in offers' "kind".
+TELEOPERATION_KINDS = ("keyboard", "webxr")
+
+_TELEOPERATION_DATAFLOW_FILE_PATTERNS = {
+    kind: re.compile(rf"{kind.upper()}_TELEOPERATION_DATAFLOW_FILE_(\d+)")
+    for kind in TELEOPERATION_KINDS
+}
+_TELEOPERATION_DATAFLOW_ENV_FILE_PATTERNS = {
+    kind: re.compile(rf"{kind.upper()}_TELEOPERATION_DATAFLOW_ENV_FILE_(\d+)")
+    for kind in TELEOPERATION_KINDS
+}
 
 
 def _read_env(env_file):
@@ -68,12 +77,14 @@ class Settings(BaseSettings):
         env = _read_env(kwargs["_env_file"])
         self._dataflow_files = _collect_task_values(_DATAFLOW_FILE_PATTERN, env)
         self._dataflow_env_files = _collect_task_values(_DATAFLOW_ENV_FILE_PATTERN, env)
-        self._teleoperation_dataflow_files = _collect_task_values(
-            _TELEOPERATION_DATAFLOW_FILE_PATTERN, env
-        )
-        self._teleoperation_dataflow_env_files = _collect_task_values(
-            _TELEOPERATION_DATAFLOW_ENV_FILE_PATTERN, env
-        )
+        self._teleoperation_dataflow_files = {
+            kind: _collect_task_values(pattern, env)
+            for kind, pattern in _TELEOPERATION_DATAFLOW_FILE_PATTERNS.items()
+        }
+        self._teleoperation_dataflow_env_files = {
+            kind: _collect_task_values(pattern, env)
+            for kind, pattern in _TELEOPERATION_DATAFLOW_ENV_FILE_PATTERNS.items()
+        }
 
     LOG_LEVEL: str = "DEBUG"
 
@@ -94,13 +105,19 @@ class Settings(BaseSettings):
     RECORDER_BASE_DIRECTORY: str = "tmp"
     STATE_DIRECTORY: str = "state"
     DEFAULT_DATAFLOW_FILE: str = "dataflow.yaml"
-    DEFAULT_TELEOPERATION_DATAFLOW_FILE: str = "dataflow-teleoperation.yaml"
+    # Without a dataflow file (these or the per-task
+    # ${KIND}_TELEOPERATION_DATAFLOW_FILE_${TASK_ID} ones),
+    # teleoperation of the kind is disabled for the task.
+    DEFAULT_KEYBOARD_TELEOPERATION_DATAFLOW_FILE: str | None = None
+    DEFAULT_WEBXR_TELEOPERATION_DATAFLOW_FILE: str | None = None
     RRD_FPS: int = Field(default=30, gt=0)
 
     _dataflow_files: dict[int, str] = PrivateAttr(default_factory=dict)
     _dataflow_env_files: dict[int, str] = PrivateAttr(default_factory=dict)
-    _teleoperation_dataflow_files: dict[int, str] = PrivateAttr(default_factory=dict)
-    _teleoperation_dataflow_env_files: dict[int, str] = PrivateAttr(
+    _teleoperation_dataflow_files: dict[str, dict[int, str]] = PrivateAttr(
+        default_factory=dict
+    )
+    _teleoperation_dataflow_env_files: dict[str, dict[int, str]] = PrivateAttr(
         default_factory=dict
     )
 
@@ -116,22 +133,24 @@ class Settings(BaseSettings):
         """.env file for the task's dataflow: DATAFLOW_ENV_FILE_${TASK_ID}."""
         return self._dataflow_env_files.get(task_id)
 
-    def teleoperation_dataflow_file(self, task_id) -> str:
-        """Teleoperation dataflow file for the task.
+    def teleoperation_dataflow_file(self, kind, task_id) -> str | None:
+        """Teleoperation dataflow file for the offer's kind and the task.
 
-        TELEOPERATION_DATAFLOW_FILE_${TASK_ID} takes precedence over
-        DEFAULT_TELEOPERATION_DATAFLOW_FILE.
+        ${KIND}_TELEOPERATION_DATAFLOW_FILE_${TASK_ID} takes precedence
+        over DEFAULT_${KIND}_TELEOPERATION_DATAFLOW_FILE. None means
+        that teleoperation of the kind is disabled for the task.
         """
-        return self._teleoperation_dataflow_files.get(
-            task_id, self.DEFAULT_TELEOPERATION_DATAFLOW_FILE
+        default = getattr(
+            self, f"DEFAULT_{kind.upper()}_TELEOPERATION_DATAFLOW_FILE", None
         )
+        return self._teleoperation_dataflow_files.get(kind, {}).get(task_id, default)
 
-    def teleoperation_dataflow_env_file(self, task_id) -> str | None:
-        """.env file for the task's teleoperation dataflow.
+    def teleoperation_dataflow_env_file(self, kind, task_id) -> str | None:
+        """.env file for the task's teleoperation dataflow of the kind.
 
-        TELEOPERATION_DATAFLOW_ENV_FILE_${TASK_ID}, if any.
+        ${KIND}_TELEOPERATION_DATAFLOW_ENV_FILE_${TASK_ID}, if any.
         """
-        return self._teleoperation_dataflow_env_files.get(task_id)
+        return self._teleoperation_dataflow_env_files.get(kind, {}).get(task_id)
 
     OPENARM_ONLINE_API_URL: str = "http://localhost:8000"
     OPENARM_ONLINE_API_KEY: str

@@ -54,27 +54,53 @@ def test_next_job_returns_none(monkeypatch):
 def test_next_offer_polls_tasks_in_order(monkeypatch):
     """_next_offer() polls each task in order until an offer is found."""
     monkeypatch.setattr(settings, "OPENARM_ONLINE_TASK_IDS", [1, 2, 3])
+    monkeypatch.setattr(
+        settings, "DEFAULT_KEYBOARD_TELEOPERATION_DATAFLOW_FILE", "dataflow.yaml"
+    )
     polled = []
 
-    def fetch_pending_offers(task_id):
-        polled.append(task_id)
+    def fetch_pending_offers(task_id, kind):
+        polled.append((task_id, kind))
         if task_id == 2:
-            return [{"id": 5}, {"id": 6}]
+            return [{"id": 5, "kind": kind}, {"id": 6, "kind": kind}]
         return []
 
     monkeypatch.setattr(
         runner.teleoperation_client, "fetch_pending_offers", fetch_pending_offers
     )
 
-    assert runner._next_offer() == {"id": 5}
-    assert polled == [1, 2]
+    assert runner._next_offer() == {"id": 5, "kind": "keyboard"}
+    assert polled == [(1, "keyboard"), (2, "keyboard")]
+
+
+def test_next_offer_skips_unconfigured_kind(monkeypatch):
+    """_next_offer() doesn't poll kinds without a dataflow for the task."""
+    monkeypatch.setattr(settings, "OPENARM_ONLINE_TASK_IDS", [1])
+    monkeypatch.setattr(
+        settings, "DEFAULT_WEBXR_TELEOPERATION_DATAFLOW_FILE", "dataflow.yaml"
+    )
+    polled = []
+
+    def fetch_pending_offers(task_id, kind):
+        polled.append((task_id, kind))
+        return [{"id": 6, "kind": kind}]
+
+    monkeypatch.setattr(
+        runner.teleoperation_client, "fetch_pending_offers", fetch_pending_offers
+    )
+
+    assert runner._next_offer() == {"id": 6, "kind": "webxr"}
+    assert polled == [(1, "webxr")]
 
 
 def test_next_offer_returns_none(monkeypatch):
     """_next_offer() returns None when no task has a pending offer."""
     monkeypatch.setattr(settings, "OPENARM_ONLINE_TASK_IDS", [1, 2])
     monkeypatch.setattr(
-        runner.teleoperation_client, "fetch_pending_offers", lambda task_id: []
+        settings, "DEFAULT_KEYBOARD_TELEOPERATION_DATAFLOW_FILE", "dataflow.yaml"
+    )
+    monkeypatch.setattr(
+        runner.teleoperation_client, "fetch_pending_offers", lambda task_id, kind: []
     )
 
     assert runner._next_offer() is None

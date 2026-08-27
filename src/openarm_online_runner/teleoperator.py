@@ -22,7 +22,7 @@ from .config import logger, settings
 
 
 def _receive_answer(listener, timeout):
-    """Accept the keyboard node's TCP connection and read the bare answer SDP."""
+    """Accept the teleoperation node's TCP connection and read the bare answer SDP."""
     listener.settimeout(timeout)
     conn, _addr = listener.accept()
     chunks = []
@@ -36,23 +36,36 @@ def _receive_answer(listener, timeout):
 def teleoperate(offer, send_answer):
     """Run the teleoperation dataflow for a single WebRTC offer.
 
-    The dataflow's dora-openarm-keyboard node runs in WebRTC-only mode: the
-    browser's offer SDP goes in through the OFFER environment variable and
-    the node writes its answer SDP back over TCP to ANSWER_HOST/ANSWER_PORT.
-    The answer is relayed to the signaling server with send_answer(sdp), the
-    browser applies it, and the session then runs until the dataflow exits
-    or TELEOPERATE_TIMEOUT passes.
+    The offer's kind selects the dataflow: dora-openarm-keyboard for
+    "keyboard" and dora-openarm-webxr for "webxr". The teleoperation
+    node runs in WebRTC-only mode: the browser's offer SDP goes in
+    through the OFFER environment variable and the node writes its
+    answer SDP back over TCP to ANSWER_HOST/ANSWER_PORT. The answer is
+    relayed to the signaling server with send_answer(sdp), the browser
+    applies it, and the session then runs until the dataflow exits or
+    TELEOPERATE_TIMEOUT passes.
     """
     offer_id = offer["id"]
     task_id = offer["task_id"]
-    dataflow_file = settings.teleoperation_dataflow_file(task_id)
+    kind = offer["kind"]
+    dataflow_file = settings.teleoperation_dataflow_file(kind, task_id)
+    if dataflow_file is None:
+        logger.warning(
+            "[offer=%s] no %s teleoperation dataflow for task %s",
+            offer_id,
+            kind,
+            task_id,
+        )
+        return False
     timeout = settings.TELEOPERATE_TIMEOUT
     # dora stops the dataflow by itself after stop_after seconds, so
     # hitting wait_timeout means that dora failed to do so.
     stop_after = timeout + dataflow.START_WAIT
     wait_timeout = stop_after + dataflow.STOP_WAIT
     with socket.create_server(("127.0.0.1", 0)) as listener:
-        env = dataflow.base_env(settings.teleoperation_dataflow_env_file(task_id)) | {
+        env = dataflow.base_env(
+            settings.teleoperation_dataflow_env_file(kind, task_id)
+        ) | {
             "OFFER": offer["sdp"],
             "ANSWER_HOST": "127.0.0.1",
             "ANSWER_PORT": str(listener.getsockname()[1]),

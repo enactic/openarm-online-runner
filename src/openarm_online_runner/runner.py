@@ -23,7 +23,7 @@ from pathlib import Path
 import openarm_driver
 
 from . import converter, evaluator, job_client, teleoperation_client, teleoperator
-from .config import logger, settings
+from .config import TELEOPERATION_KINDS, logger, settings
 
 
 def _not_ready_path():
@@ -127,11 +127,18 @@ def run_teleoperation(offer):
 
 
 def _next_offer():
-    """Return the oldest pending teleoperation offer across all tasks."""
+    """Return the oldest servable pending teleoperation offer across all tasks.
+
+    Only kinds with a teleoperation dataflow configured for the task
+    are polled; other kinds' offers stay pending.
+    """
     for task_id in settings.OPENARM_ONLINE_TASK_IDS:
-        offers = teleoperation_client.fetch_pending_offers(task_id)
-        if offers:
-            return offers[0]
+        for kind in TELEOPERATION_KINDS:
+            if settings.teleoperation_dataflow_file(kind, task_id) is None:
+                continue
+            offers = teleoperation_client.fetch_pending_offers(task_id, kind)
+            if offers:
+                return offers[0]
     return None
 
 
