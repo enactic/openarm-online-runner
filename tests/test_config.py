@@ -20,8 +20,8 @@ from unittest.mock import MagicMock
 import pytest
 from pydantic import ValidationError
 
-from openarm_online_runner.config import Settings
 from openarm_online_runner import config
+from openarm_online_runner.config import Settings
 
 
 def test_task_ids_comma_separated(monkeypatch):
@@ -121,7 +121,8 @@ def test_teleoperation_dataflow_env_file_per_task(monkeypatch):
 
 def _datetime_mock(monkeypatch, hour, minute):
     datetime_mock = MagicMock(wraps=datetime)
-    datetime_mock.now.return_value = datetime(2026, 1, 1, hour, minute)
+    # Naive datetime is intended: it mocks local wall-clock time.
+    datetime_mock.now.return_value = datetime(2026, 1, 1, hour, minute)  # noqa: DTZ001
     monkeypatch.setattr(config, "datetime", datetime_mock)
 
 

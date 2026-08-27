@@ -107,6 +107,6 @@ def succeeded(phase, job):
         if dataset.meta.num_episodes == 0:
             return False
         return bool(dataset.meta.episodes[0].get("success", False))
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.exception("[job=%s] failed to read %s dataset", job["job_id"], phase)
         return False

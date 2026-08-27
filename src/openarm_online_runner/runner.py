@@ -14,11 +14,10 @@
 
 """Evaluates queued jobs and teleoperation offers in an OpenArm Cell as a daemon."""
 
+import shutil
 import signal
 import sys
 import time
-import shutil
-
 from pathlib import Path
 
 import openarm_driver
@@ -48,7 +47,7 @@ def _remove_directory(job, directory):
     logger.debug("[job=%s] removing %s", job["job_id"], directory)
     try:
         shutil.rmtree(directory)
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.exception("[job=%s] cleanup failed %s", job["job_id"], directory)
 
 
@@ -61,7 +60,7 @@ def _stop_arms():
     for side in ("left_arm", "right_arm"):
         try:
             openarm_driver.SingleArmDriver(side).stop()
-        except Exception:
+        except Exception:  # noqa: BLE001
             logger.exception("[arm=%s] stop failed", side)
 
 
@@ -102,7 +101,7 @@ def run_job(job):
         logger.warning("[job=%s] interrupted", job["job_id"])
         job_client.fail_job(job["job_id"], "runner terminated")
         raise
-    except Exception as err:
+    except Exception as err:  # noqa: BLE001
         logger.exception("[job=%s] failed", job["job_id"])
         job_client.fail_job(job["job_id"], str(err))
     finally:
@@ -119,7 +118,7 @@ def run_teleoperation(offer):
             lambda sdp: teleoperation_client.answer_offer(offer["id"], sdp),
         )
         logger.debug("[offer=%s] teleoperation ended", offer["id"])
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.exception("[offer=%s] teleoperation failed", offer["id"])
     finally:
         # Real arms move only on OpenArm Cell.

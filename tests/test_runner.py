@@ -44,7 +44,6 @@ def test_next_job_returns_none(monkeypatch):
 
     def fetch_next(task_id):
         polled.append(task_id)
-        return None
 
     monkeypatch.setattr(runner.job_client, "fetch_next", fetch_next)
 
