@@ -14,6 +14,7 @@
 
 """Teleoperate the cell from a Web browser over WebRTC."""
 
+import json
 import socket
 import subprocess
 
@@ -33,16 +34,19 @@ def _receive_answer(listener, timeout):
     return b"".join(chunks).decode("utf-8")
 
 
-def teleoperate(offer, send_answer):
+def teleoperate(offer, ice_servers, send_answer):
     """Run the teleoperation dataflow for a single WebRTC offer.
 
     The offer's kind selects the dataflow: dora-openarm-keyboard for
     "keyboard" and dora-openarm-webxr for "webxr". The teleoperation
     node runs in WebRTC-only mode: the browser's offer SDP goes in
-    through the OFFER environment variable and the node writes its
-    answer SDP back over TCP to ANSWER_HOST/ANSWER_PORT. The answer is
-    relayed to the signaling server with send_answer(sdp), the browser
-    applies it, and the session then runs until the dataflow exits or
+    through the OFFER environment variable, the node builds its peer
+    with the ICE servers passed as JSON through the ICE_SERVERS
+    environment variable (they may hold short-lived TURN credentials
+    minted by the signaling server) and writes its answer SDP back
+    over TCP to ANSWER_HOST/ANSWER_PORT. The answer is relayed to the
+    signaling server with send_answer(sdp), the browser applies it,
+    and the session then runs until the dataflow exits or
     TELEOPERATE_TIMEOUT passes.
     """
     offer_id = offer["id"]
@@ -67,6 +71,7 @@ def teleoperate(offer, send_answer):
             settings.teleoperation_dataflow_env_file(kind, task_id)
         ) | {
             "OFFER": offer["sdp"],
+            "ICE_SERVERS": json.dumps(ice_servers),
             "ANSWER_HOST": "127.0.0.1",
             "ANSWER_PORT": str(listener.getsockname()[1]),
             "TIMEOUT": str(timeout),

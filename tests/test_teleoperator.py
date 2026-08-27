@@ -14,6 +14,7 @@
 
 """Tests for teleoperator."""
 
+import json
 import subprocess
 import sys
 
@@ -24,6 +25,13 @@ from openarm_online_runner.config import settings
 
 OFFER = {"id": 1, "task_id": 1, "kind": "keyboard", "sdp": "offer-sdp"}
 WEBXR_OFFER = {"id": 2, "task_id": 1, "kind": "webxr", "sdp": "offer-sdp"}
+ICE_SERVERS = [
+    {
+        "urls": ["turn:turn.cloudflare.com:3478"],
+        "username": "user",
+        "credential": "pass",
+    }
+]
 
 
 @pytest.fixture(autouse=True)
@@ -92,7 +100,7 @@ def test_teleoperate(monkeypatch):
     started = _fake_dataflow(monkeypatch, ANSWER_SCRIPT)
 
     answers = []
-    assert teleoperator.teleoperate(OFFER, answers.append)
+    assert teleoperator.teleoperate(OFFER, ICE_SERVERS, answers.append)
 
     assert answers == ["answer-sdp"]
     assert (
@@ -100,6 +108,7 @@ def test_teleoperate(monkeypatch):
         == settings.DEFAULT_KEYBOARD_TELEOPERATION_DATAFLOW_FILE
     )
     assert started["env"]["OFFER"] == "offer-sdp"
+    assert json.loads(started["env"]["ICE_SERVERS"]) == ICE_SERVERS
     assert started["env"]["TIMEOUT"] == str(settings.TELEOPERATE_TIMEOUT)
     assert started["stop_after"] == settings.TELEOPERATE_TIMEOUT + dataflow.START_WAIT
 
@@ -109,7 +118,7 @@ def test_teleoperate_webxr(monkeypatch):
     started = _fake_dataflow(monkeypatch, ANSWER_SCRIPT)
 
     answers = []
-    assert teleoperator.teleoperate(WEBXR_OFFER, answers.append)
+    assert teleoperator.teleoperate(WEBXR_OFFER, ICE_SERVERS, answers.append)
 
     assert answers == ["answer-sdp"]
     assert (
@@ -131,7 +140,7 @@ TELEOPERATION_DATAFLOW_ENV_FILE_ONLY=from-env-file
     started = _fake_dataflow(monkeypatch, ANSWER_SCRIPT)
 
     answers = []
-    assert teleoperator.teleoperate(OFFER, answers.append)
+    assert teleoperator.teleoperate(OFFER, ICE_SERVERS, answers.append)
     assert started["env"]["TELEOPERATION_DATAFLOW_ENV_FILE_ONLY"] == "from-env-file"
 
 
@@ -140,7 +149,7 @@ def test_teleoperate_unconfigured(monkeypatch):
     monkeypatch.setattr(settings, "DEFAULT_KEYBOARD_TELEOPERATION_DATAFLOW_FILE", None)
 
     answers = []
-    assert not teleoperator.teleoperate(OFFER, answers.append)
+    assert not teleoperator.teleoperate(OFFER, ICE_SERVERS, answers.append)
     assert answers == []
 
 
@@ -153,7 +162,7 @@ def test_teleoperate_start_fails(monkeypatch):
     monkeypatch.setattr(dataflow, "start", start)
 
     answers = []
-    assert not teleoperator.teleoperate(OFFER, answers.append)
+    assert not teleoperator.teleoperate(OFFER, ICE_SERVERS, answers.append)
     assert answers == []
 
 
@@ -162,7 +171,7 @@ def test_teleoperate_dataflow_fails(monkeypatch):
     _fake_dataflow(monkeypatch, ANSWER_THEN_FAIL_SCRIPT)
 
     answers = []
-    assert not teleoperator.teleoperate(OFFER, answers.append)
+    assert not teleoperator.teleoperate(OFFER, ICE_SERVERS, answers.append)
     assert answers == ["answer-sdp"]
 
 
@@ -172,7 +181,7 @@ def test_teleoperate_no_answer(monkeypatch):
     _fake_dataflow(monkeypatch, NO_ANSWER_SCRIPT)
 
     answers = []
-    assert not teleoperator.teleoperate(OFFER, answers.append)
+    assert not teleoperator.teleoperate(OFFER, ICE_SERVERS, answers.append)
     assert answers == []
 
 
@@ -184,5 +193,5 @@ def test_teleoperate_session_timeout(monkeypatch):
     _fake_dataflow(monkeypatch, ANSWER_THEN_HANG_SCRIPT)
 
     answers = []
-    assert not teleoperator.teleoperate(OFFER, answers.append)
+    assert not teleoperator.teleoperate(OFFER, ICE_SERVERS, answers.append)
     assert answers == ["answer-sdp"]
