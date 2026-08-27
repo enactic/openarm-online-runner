@@ -27,18 +27,18 @@ TASK_ID = settings.OPENARM_ONLINE_TASK_IDS[0]
 
 @responses.activate
 def test_fetch_pending_offers_returns_offers():
-    """fetch_pending_offers() returns the offer dicts."""
+    """fetch_pending_offers() returns the offer dicts of the kind."""
     offers = [
-        {"id": 1, "task_id": TASK_ID, "sdp": "offer-sdp-1"},
-        {"id": 2, "task_id": TASK_ID, "sdp": "offer-sdp-2"},
+        {"id": 1, "task_id": TASK_ID, "kind": "keyboard", "sdp": "offer-sdp-1"},
+        {"id": 2, "task_id": TASK_ID, "kind": "keyboard", "sdp": "offer-sdp-2"},
     ]
     responses.add(
         responses.GET,
-        f"{API_URL}/api/v1/tasks/{TASK_ID}/teleoperation/offers",
+        f"{API_URL}/api/v1/tasks/{TASK_ID}/teleoperation/keyboard/offers",
         json=offers,
     )
 
-    assert teleoperation_client.fetch_pending_offers(TASK_ID) == offers
+    assert teleoperation_client.fetch_pending_offers(TASK_ID, "keyboard") == offers
 
 
 @responses.activate
@@ -46,11 +46,11 @@ def test_fetch_pending_offers_returns_empty():
     """fetch_pending_offers() returns an empty list without offers."""
     responses.add(
         responses.GET,
-        f"{API_URL}/api/v1/tasks/{TASK_ID}/teleoperation/offers",
+        f"{API_URL}/api/v1/tasks/{TASK_ID}/teleoperation/webxr/offers",
         json=[],
     )
 
-    assert teleoperation_client.fetch_pending_offers(TASK_ID) == []
+    assert teleoperation_client.fetch_pending_offers(TASK_ID, "webxr") == []
 
 
 @responses.activate

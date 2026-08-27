@@ -67,25 +67,34 @@ uv run openarm-online-runner
 ## Teleoperation
 
 Besides evaluation jobs, the runner polls the OpenArm Online API for
-WebRTC offers queued by Web browsers and serves each one with the
-dataflow configured by `DEFAULT_TELEOPERATION_DATAFLOW_FILE` (default:
-`dataflow-teleoperation.yaml`) or the offered task's
-`TELEOPERATION_DATAFLOW_FILE_${TASK_ID}`, if any.
+WebRTC offers queued by Web browsers. Each offer says what kind of
+client made it: `keyboard` or `webxr`. The runner serves the offer with
+the dataflow configured for its kind:
+`DEFAULT_KEYBOARD_TELEOPERATION_DATAFLOW_FILE` or
+`DEFAULT_WEBXR_TELEOPERATION_DATAFLOW_FILE`, overridable per task with
+`KEYBOARD_TELEOPERATION_DATAFLOW_FILE_${TASK_ID}` /
+`WEBXR_TELEOPERATION_DATAFLOW_FILE_${TASK_ID}`. Both are unset by
+default: an offer whose kind has no dataflow configured for the task is
+left pending. The sample dataflows under
+[`dataflows/teleoperation/`](dataflows/teleoperation/) are good starting
+points.
 
-The dataflow must contain a
+The dataflow must contain a teleoperation node —
 [`dora-openarm-keyboard`](https://github.com/enactic/dora-openarm-keyboard)
-node running in WebRTC-only mode: the runner hands the browser's offer
-SDP to the dataflow via the `OFFER` environment variable and listens on
+for `keyboard`, `dora-openarm-webxr` for `webxr` — running in
+WebRTC-only mode: the runner hands the browser's offer SDP to the
+dataflow via the `OFFER` environment variable and listens on
 `ANSWER_HOST`/`ANSWER_PORT` for the answer SDP the node writes back. The
 answer is posted to the API server, the browser applies it to establish
 the WebRTC connection, and teleoperation starts. The session ends when
 the dataflow exits (e.g. via a quitter node honoring the `TIMEOUT`
 environment variable) or after `TELEOPERATE_TIMEOUT` seconds.
 
-Build the teleoperation dataflow like the evaluation one:
+Build the teleoperation dataflows like the evaluation one:
 
 ```bash
-uv run dora build dataflow-teleoperation.yaml --uv
+uv run dora build dataflows/teleoperation/keyboard/mujoco/dataflow.yaml --uv
+uv run dora build dataflows/teleoperation/webxr/mujoco/dataflow.yaml --uv
 ```
 
 ## Run as a systemd service

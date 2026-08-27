@@ -22,22 +22,24 @@ import pytest
 from openarm_online_runner import dataflow, teleoperator
 from openarm_online_runner.config import settings
 
-OFFER = {"id": 1, "task_id": 1, "sdp": "offer-sdp"}
+OFFER = {"id": 1, "task_id": 1, "kind": "keyboard", "sdp": "offer-sdp"}
+WEBXR_OFFER = {"id": 2, "task_id": 1, "kind": "webxr", "sdp": "offer-sdp"}
 
 
 @pytest.fixture(autouse=True)
-def teleoperation_dataflow_file(tmp_path, monkeypatch):
-    """Point the dataflow file into tmp_path.
+def teleoperation_dataflow_files(tmp_path, monkeypatch):
+    """Point the dataflow files into tmp_path.
 
     teleoperate() removes the out/ directory next to the dataflow
-    file; with the default dataflow file it would remove the
+    file; with the default dataflow files it would remove the
     repository's out/.
     """
-    monkeypatch.setattr(
-        settings,
-        "DEFAULT_TELEOPERATION_DATAFLOW_FILE",
-        str(tmp_path / "dataflow-teleoperation.yaml"),
-    )
+    for kind in ("KEYBOARD", "WEBXR"):
+        monkeypatch.setattr(
+            settings,
+            f"DEFAULT_{kind}_TELEOPERATION_DATAFLOW_FILE",
+            str(tmp_path / f"dataflow-{kind.lower()}-teleoperation.yaml"),
+        )
 
 
 # Stand-ins for the dataflow's keyboard node in WebRTC-only mode: connect
@@ -93,10 +95,26 @@ def test_teleoperate(monkeypatch):
     assert teleoperator.teleoperate(OFFER, answers.append)
 
     assert answers == ["answer-sdp"]
-    assert started["dataflow_file"] == settings.DEFAULT_TELEOPERATION_DATAFLOW_FILE
+    assert (
+        started["dataflow_file"]
+        == settings.DEFAULT_KEYBOARD_TELEOPERATION_DATAFLOW_FILE
+    )
     assert started["env"]["OFFER"] == "offer-sdp"
     assert started["env"]["TIMEOUT"] == str(settings.TELEOPERATE_TIMEOUT)
     assert started["stop_after"] == settings.TELEOPERATE_TIMEOUT + dataflow.START_WAIT
+
+
+def test_teleoperate_webxr(monkeypatch):
+    """teleoperate() uses the WebXR dataflow for a webxr offer."""
+    started = _fake_dataflow(monkeypatch, ANSWER_SCRIPT)
+
+    answers = []
+    assert teleoperator.teleoperate(WEBXR_OFFER, answers.append)
+
+    assert answers == ["answer-sdp"]
+    assert (
+        started["dataflow_file"] == settings.DEFAULT_WEBXR_TELEOPERATION_DATAFLOW_FILE
+    )
 
 
 def test_teleoperate_dataflow_env_file(tmp_path, monkeypatch):
@@ -106,13 +124,24 @@ def test_teleoperate_dataflow_env_file(tmp_path, monkeypatch):
 TELEOPERATION_DATAFLOW_ENV_FILE_ONLY=from-env-file
 """)
     monkeypatch.setattr(
-        settings, "_teleoperation_dataflow_env_files", {1: str(env_file)}
+        settings,
+        "_teleoperation_dataflow_env_files",
+        {"keyboard": {1: str(env_file)}, "webxr": {}},
     )
     started = _fake_dataflow(monkeypatch, ANSWER_SCRIPT)
 
     answers = []
     assert teleoperator.teleoperate(OFFER, answers.append)
     assert started["env"]["TELEOPERATION_DATAFLOW_ENV_FILE_ONLY"] == "from-env-file"
+
+
+def test_teleoperate_unconfigured(monkeypatch):
+    """teleoperate() fails when no dataflow is configured for the kind."""
+    monkeypatch.setattr(settings, "DEFAULT_KEYBOARD_TELEOPERATION_DATAFLOW_FILE", None)
+
+    answers = []
+    assert not teleoperator.teleoperate(OFFER, answers.append)
+    assert answers == []
 
 
 def test_teleoperate_start_fails(monkeypatch):

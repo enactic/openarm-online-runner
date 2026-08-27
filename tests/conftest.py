@@ -20,6 +20,10 @@ from pathlib import Path
 
 import pytest
 
+# Keep the developer's local .env out of the tests. Tests that need
+# an .env file set ENV_FILE themselves.
+os.environ["ENV_FILE"] = os.devnull
+
 os.environ.setdefault("OPENARM_ONLINE_API_KEY", "test-api-key")
 os.environ.setdefault("OPENARM_ONLINE_TASK_IDS", "1")
 

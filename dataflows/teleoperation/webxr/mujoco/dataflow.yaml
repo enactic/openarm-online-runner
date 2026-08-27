@@ -23,6 +23,7 @@ nodes:
   - id: webxr # browser keys → EE pose targets, camera → browser
     build: pip install dora-openarm-webxr
     path: dora-openarm-webxr
+    args: "--quit-button b"
     inputs:
       # Keeps the view on the newest frame. Without it, frames the VR
       # device cannot keep up with queue and latency grows.
