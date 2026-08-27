@@ -154,7 +154,9 @@ class Settings(BaseSettings):
         end = self.ACTIVE_TIME_END
         if start is None or end is None:
             return True
-        now = datetime.now().time()
+        # Naive datetime is intended: ACTIVE_TIME_START/ACTIVE_TIME_END
+        # are local wall-clock times.
+        now = datetime.now().time()  # noqa: DTZ005
         if start <= end:
             # Example:
             # start=08:00

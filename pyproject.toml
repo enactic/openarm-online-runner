@@ -46,7 +46,6 @@ build-backend = "uv_build"
 dev = [
     "pytest>=9.0.3",
     "responses>=0.26.1",
-    "ruff>=0.15.6",
 ]
 
 [tool.pytest.ini_options]

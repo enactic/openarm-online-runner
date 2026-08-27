@@ -25,7 +25,6 @@ from dotenv import dotenv_values
 
 from .config import logger
 
-
 # Wait time for all nodes in the dataflow to start. The
 # dora-openarm-docker-policy-server node can be especially slow to
 # start. We use 60 seconds for now, but a better value may exist.
