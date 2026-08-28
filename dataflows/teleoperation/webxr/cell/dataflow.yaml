@@ -1,0 +1,131 @@
+# Copyright 2026 Enactic, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# WebXR teleoperation of a real dual-arm OpenArm cell from a VR headset:
+# the webxr node talks to the headset's browser over WebRTC, receiving the
+# controller poses and buttons over a data channel and streaming the stereo
+# head camera back as video. controller poses -> end-effector pose targets ->
+# IK -> joint angles -> the follower arms, and the stereo head camera back
+# to the headset. The B button quits the dataflow.
+
+nodes:
+  - id: quittable-tick-camera
+    build: pip install dora-openarm-quitter
+    path: dora-openarm-quitter
+    inputs:
+      command: webxr/command
+      tick: dora/timer/millis/33  # ~30 fps
+    outputs:
+      - tick
+
+  - id: webxr # browser keys → EE pose targets, camera → browser
+    build: pip install dora-openarm-webxr
+    path: dora-openarm-webxr
+    args: "--quit-button b"
+    inputs:
+      # Keeps the view on the newest frame. Without it, frames the VR
+      # device cannot keep up with queue and latency grows.
+      camera_head_right:
+        source: camera-head-stereo-splitter/image_1
+        queue_size: 1
+      # Only used by the stereo view. Swap the two sources if the
+      # stereo camera's left and right images are flipped.
+      camera_head_left:
+        source: camera-head-stereo-splitter/image_0
+        queue_size: 1
+    outputs:
+      - command
+      - pose_right
+      - trigger_right
+      - pose_left
+      - trigger_left
+      - grip_right
+      - grip_left
+      - joystick_x_right
+      - joystick_y_right
+      - joystick_x_left
+      - joystick_y_left
+      - button_a
+      - button_b
+      - button_x
+      - button_y
+      - status
+      - vr_receive_times
+      - pose_reference
+
+  - id: ik # differential IK: EE poses → joint angles
+    build: pip install dora-openarm-kinematics
+    path: dora-openarm-ik
+    inputs:
+      # The solver runs on each target, not on the tick.
+      target_right: webxr/pose_right
+      target_left: webxr/pose_left
+    outputs:
+      - position_left
+      - position_right
+      - status
+
+  - id: follower-right
+    build: pip install dora-openarm
+    path: dora-openarm
+    # We need "--config openarm_pedestal" when we calibrate by
+    # openarm-can-calibration-in-cell. We don't need it when we use
+    # jig for calibration.
+    args: "--side right --start-on-startup --config openarm_pedestal"
+    inputs:
+      move_position: ik/position_right
+    outputs:
+      - status
+
+  - id: follower-left
+    build: pip install dora-openarm
+    path: dora-openarm
+    # We need "--config openarm_pedestal" when we calibrate by
+    # openarm-can-calibration-in-cell. We don't need it when we use
+    # jig for calibration.
+    args: "--side left --start-on-startup --config openarm_pedestal"
+    inputs:
+      move_position: ik/position_left
+    outputs:
+      - status
+
+  - id: camera-head-stereo
+    build: pip install opencv-video-capture
+    path: opencv-video-capture
+    env:
+      # Please configure!
+      # Stereo camera: left and right images placed side by side in one frame.
+      CAPTURE_PATH: "/dev/camera_head_stereo"
+      ENCODING: "bgr8"
+      IMAGE_HEIGHT: 720
+      IMAGE_WIDTH: 2560
+    inputs:
+      tick: quittable-tick-camera/tick
+    outputs:
+      - image
+
+  - id: camera-head-stereo-splitter
+    build: pip install dora-opencv-image-splitter
+    path: dora-opencv-image-splitter
+    env:
+      SPLIT_MODE: "vertical"
+      NUM_SPLITS: 2
+      JPEG_QUALITY: 90
+      IMAGE_HEIGHT: 720
+      IMAGE_WIDTH: 2560
+    inputs:
+      image: camera-head-stereo/image
+    outputs:
+      - image_0
+      - image_1

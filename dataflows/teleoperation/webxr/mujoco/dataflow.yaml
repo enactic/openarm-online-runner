@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Keyboard teleoperation from a web browser, with no VR headset and no real
-# OpenArm: the keyboard node serves a page (http://127.0.0.1:8080/ by default)
-# that captures keys over a WebRTC data channel and shows the MuJoCo camera as
-# WebRTC video. keyboard -> end-effector pose targets -> IK -> joint angles ->
-# MuJoCo, and MuJoCo's camera back to the browser. The arms move only while a
-# motion key is held and the page has focus.
+# WebXR teleoperation on MuJoCo, with no real OpenArm: the webxr node talks
+# to the VR headset's browser over WebRTC, receiving the controller poses and
+# buttons over a data channel and streaming MuJoCo's stereo head camera back
+# as video. controller poses -> end-effector pose targets -> IK -> joint
+# angles -> MuJoCo, and MuJoCo's head camera back to the headset.
 
 nodes:
   - id: webxr # browser keys → EE pose targets, camera → browser
