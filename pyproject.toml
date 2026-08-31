@@ -14,7 +14,7 @@
 
 [project]
 name = "openarm-online-runner"
-version = "0.1.0"
+version = "0.0.1"
 authors = [{ name = "Enactic, Inc." }]
 description = "Evaluate submitted policy servers in OpenArm Cell automatically."
 license = { text = "Apache-2.0" }
