@@ -22,7 +22,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 
 dependencies = [
-    "dora-rs==0.5.0",
+    "dora-rs==1.0.1",
     "dora-rs-cli==0.5.0",
     "openarm-dataset[rerun]>=0.2.0",
     "openarm-driver>=0.1.0",
